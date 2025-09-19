@@ -8,10 +8,12 @@ def api_root(request):
         'version': '1.0.0',
         'endpoints': {
             'admin': '/admin/',
+            'resume_app': '/api/resume_app/',
         }
     })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', api_root, name='api-root'),
+    path('api/resume_app/', include('resume_app.urls')),
 ]
