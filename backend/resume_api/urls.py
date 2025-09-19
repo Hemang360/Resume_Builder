@@ -1,19 +1,19 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.http import JsonResponse
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+)
 
-def api_root(request):
-    return JsonResponse({
-        'message': 'Resume Builder API',
-        'version': '1.0.0',
-        'endpoints': {
-            'admin': '/admin/',
-            'resume_app': '/api/resume_app/',
-        }
-    })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', api_root, name='api-root'),
-    path('api/resume_app/', include('resume_app.urls')),
+    
+    # API endpoints
+    path('api/', include('resumes.urls')),
+    
+    # OpenAPI/Swagger documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    
 ]
