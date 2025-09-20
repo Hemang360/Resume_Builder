@@ -28,7 +28,8 @@ databases:
   - name: resume-builder-db
     plan: free
 
-  - name: resume-builder-redis
+services:
+  - type: redis
+    name: resume-builder-redis
     plan: free
-    type: redis
     ipAllowList: []
