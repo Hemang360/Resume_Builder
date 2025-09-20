@@ -1,0 +1,272 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Frontend Tests and Build
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        run_install: false
+    
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+    
+    - name: Setup pnpm cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+    
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    
+    - name: Type checking
+      run: pnpm run type-check
+    
+    - name: Lint code
+      run: pnpm run lint
+    
+    - name: Run tests
+      run: pnpm run test
+    
+    - name: Build application
+      run: pnpm run build
+      env:
+        VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'http://localhost:8000' }}
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      if: matrix.node-version == '20.x'
+      with:
+        name: frontend-build
+        path: frontend/dist
+        retention-days: 7
+
+  # Backend Tests
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_resume_builder
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+        cache-dependency-path: backend/requirements.txt
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libcairo2 \
+          libpango-1.0-0 \
+          libpangocairo-1.0-0 \
+          libgdk-pixbuf2.0-0 \
+          libffi-dev \
+          shared-mime-info
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install coverage pytest-django
+    
+    - name: Run linting
+      run: |
+        pip install flake8 black isort
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check .
+        isort --check-only .
+    
+    - name: Run tests with coverage
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_resume_builder
+        REDIS_URL: redis://localhost:6379/0
+        SECRET_KEY: test-secret-key-for-ci
+        DEBUG: False
+      run: |
+        coverage run --source='.' manage.py test
+        coverage report --show-missing
+        coverage xml
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        file: backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+    
+    - name: Run Django checks
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_resume_builder
+        SECRET_KEY: test-secret-key-for-ci
+      run: |
+        python manage.py check
+        python manage.py check --deploy
+    
+    - name: Test migrations
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_resume_builder
+        SECRET_KEY: test-secret-key-for-ci
+      run: |
+        python manage.py migrate
+        python manage.py makemigrations --check
+
+  # Security Checks
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+    
+    - name: Set up Python for backend security check
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install safety
+      run: pip install safety
+    
+    - name: Check Python dependencies for vulnerabilities
+      run: safety check -r backend/requirements.txt
+
+  # Deploy to staging (only on develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+    - name: Deploy to Render (Staging)
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        RENDER_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+      run: |
+        curl -X POST \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer $RENDER_API_KEY" \
+          "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
+    
+    - name: Deploy to Vercel (Staging)
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        working-directory: frontend
+        scope: ${{ secrets.VERCEL_ORG_ID }}
+
+  # Deploy to production (only on main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Deploy to Render (Production)
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        RENDER_SERVICE_ID: ${{ secrets.RENDER_PROD_SERVICE_ID }}
+      run: |
+        curl -X POST \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer $RENDER_API_KEY" \
+          "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
+    
+    - name: Deploy to Vercel (Production)
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        vercel-args: '--prod'
+        working-directory: frontend
+        scope: ${{ secrets.VERCEL_ORG_ID }}
