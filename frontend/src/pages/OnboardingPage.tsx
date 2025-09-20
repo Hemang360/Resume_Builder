@@ -87,8 +87,10 @@ const OnboardingPage: React.FC = () => {
     setUserData(data)
     
     try {
-      // Create the resume in the backend
-      await createResume()
+      // Only create resume if we don't already have one
+      if (!resume.id) {
+        await createResume()
+      }
       
       // Pre-fill the resume with user data
       const [firstName, ...lastNameParts] = data.name.split(' ')

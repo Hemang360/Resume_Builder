@@ -537,18 +537,30 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     try {
       const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
       
+      const requestBody = {
+        content: initialResumeContent
+      }
+      
+      console.log('Creating resume with data:', JSON.stringify(requestBody, null, 2))
+      
       const response = await fetch(`${API_BASE_URL}/api/resumes/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          content: initialResumeContent
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to create resume: ${response.statusText}`)
+        let errorMessage = `Failed to create resume: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          console.error('Resume creation error response:', errorData)
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch (e) {
+          console.error('Failed to parse error response:', e)
+        }
+        throw new Error(errorMessage)
       }
 
       const newResume: Resume = await response.json()
