@@ -31,7 +31,7 @@ export const useAutosave = ({
   onSaveError,
   debounceMs = 800
 }: UseAutosaveOptions) => {
-  const debounceTimer = useRef<number>()
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>()
   const requestQueue = useRef<QueuedRequest[]>([])
   const isOnline = useRef(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const processingQueue = useRef(false)
