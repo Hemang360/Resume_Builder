@@ -22,7 +22,7 @@
           name: resume-builder-redis
           property: connectionString
       - key: WEBSOCKET_URL
-        value: wss://resume-builder-backend.onrender.com/ws/
+        value: wss://resume-builder-backend-7wxd.onrender.com/ws/
 
   - type: redis
     name: resume-builder-redis

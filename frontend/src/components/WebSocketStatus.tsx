@@ -34,6 +34,12 @@ export const WebSocketStatus: React.FC = () => {
       return 'Live sync'
     }
     if (webSocketError) {
+      if (webSocketError.includes('Render free tier')) {
+        return 'Service sleeping'
+      }
+      if (webSocketError.includes('Server error')) {
+        return 'Server restarting'
+      }
       return 'Connection lost'
     }
     return 'Disconnected'
@@ -49,9 +55,29 @@ export const WebSocketStatus: React.FC = () => {
     return 'secondary'
   }
 
+  const getTooltipText = () => {
+    if (isWebSocketConnected) {
+      return 'Real-time collaboration enabled'
+    }
+    if (webSocketError?.includes('Render free tier')) {
+      return 'Free tier service is sleeping. Changes will sync when service wakes up.'
+    }
+    if (webSocketError?.includes('Server error')) {
+      return 'Server is restarting. Changes will sync when service is back online.'
+    }
+    if (webSocketError) {
+      return 'Connection lost. Changes will sync when connection is restored.'
+    }
+    return 'WebSocket connection not available'
+  }
+
   return (
     <div className="flex items-center gap-2">
-      <Badge variant={getStatusVariant()} className="flex items-center gap-1">
+      <Badge 
+        variant={getStatusVariant()} 
+        className="flex items-center gap-1"
+        title={getTooltipText()}
+      >
         {getStatusIcon()}
         <span className="text-xs">{getStatusText()}</span>
       </Badge>
@@ -62,6 +88,7 @@ export const WebSocketStatus: React.FC = () => {
           size="sm"
           onClick={reconnectWebSocket}
           className="h-6 px-2 text-xs"
+          title="Try to reconnect WebSocket"
         >
           <RefreshCw className="h-3 w-3 mr-1" />
           Reconnect

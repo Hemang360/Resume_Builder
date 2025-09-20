@@ -32,8 +32,8 @@ export const useWebSocket = ({
   onConnect,
   onDisconnect,
   onError,
-  reconnectInterval = 3000,
-  maxReconnectAttempts = 5
+  reconnectInterval = 5000,
+  maxReconnectAttempts = 10
 }: WebSocketHookOptions): WebSocketHookReturn => {
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -43,6 +43,8 @@ export const useWebSocket = ({
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const shouldReconnectRef = useRef(true)
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastPongRef = useRef<number>(Date.now())
 
   const getWebSocketUrl = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -74,6 +76,15 @@ export const useWebSocket = ({
         setIsConnecting(false)
         setError(null)
         reconnectAttemptsRef.current = 0
+        lastPongRef.current = Date.now()
+        
+        // Start heartbeat to keep connection alive
+        heartbeatIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }))
+          }
+        }, 30000) // Send ping every 30 seconds
+        
         onConnect?.()
       }
 
@@ -81,6 +92,13 @@ export const useWebSocket = ({
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
           console.log('WebSocket message received:', message)
+          
+          // Handle pong response
+          if (message.type === 'pong') {
+            lastPongRef.current = Date.now()
+            return
+          }
+          
           onMessage?.(message)
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err)
@@ -92,14 +110,24 @@ export const useWebSocket = ({
         setIsConnected(false)
         setIsConnecting(false)
         wsRef.current = null
+        
+        // Clear heartbeat interval
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current)
+          heartbeatIntervalRef.current = null
+        }
+        
         onDisconnect?.()
 
         // Handle specific close codes
         if (event.code === 1006) {
-          console.warn('WebSocket connection closed abnormally (1006) - likely network issue')
-          setError('Connection lost due to network issue')
+          console.warn('WebSocket connection closed abnormally (1006) - likely Render free tier timeout')
+          setError('Connection lost - Render free tier timeout')
         } else if (event.code === 1000) {
           console.log('WebSocket connection closed normally')
+        } else if (event.code === 1011) {
+          console.warn('WebSocket server error (1011) - service may be restarting')
+          setError('Server error - service may be restarting')
         } else {
           console.warn(`WebSocket closed with code ${event.code}: ${event.reason}`)
           setError(`Connection closed: ${event.reason || 'Unknown reason'}`)
@@ -108,14 +136,18 @@ export const useWebSocket = ({
         // Attempt to reconnect if not manually disconnected
         if (shouldReconnectRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++
-          const delay = Math.min(reconnectInterval * Math.pow(1.5, reconnectAttemptsRef.current - 1), 30000)
-          console.log(`Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts}) in ${delay}ms...`)
+          // Exponential backoff with jitter for Render free tier
+          const baseDelay = reconnectInterval * Math.pow(1.5, reconnectAttemptsRef.current - 1)
+          const jitter = Math.random() * 1000 // Add up to 1 second of jitter
+          const delay = Math.min(baseDelay + jitter, 60000) // Max 60 seconds
+          
+          console.log(`Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts}) in ${Math.round(delay)}ms...`)
           
           reconnectTimeoutRef.current = setTimeout(() => {
             connect()
           }, delay)
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          setError('Failed to reconnect after maximum attempts. Please refresh the page.')
+          setError('Failed to reconnect after maximum attempts. WebSocket features disabled.')
         }
       }
 
@@ -139,6 +171,11 @@ export const useWebSocket = ({
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
+    }
+
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current)
+      heartbeatIntervalRef.current = null
     }
 
     if (wsRef.current) {
@@ -203,6 +240,18 @@ export const useWebSocket = ({
       disconnect()
     }
   }, [disconnect])
+
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current)
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+    }
+  }, [])
 
   return {
     isConnected,
