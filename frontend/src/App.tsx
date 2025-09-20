@@ -1,5 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { ResumeProvider } from './contexts/ResumeContext'
+import { DarkModeProvider } from './contexts/DarkModeContext'
 import { ToastProvider } from './components/ui/toast'
 import DraftDialog from './components/DraftDialog'
 import ResumeRouter from './components/ResumeRouter'
@@ -21,14 +22,16 @@ function App() {
   const resumeId = urlResumeId || storedResumeId || undefined
 
   return (
-    <ToastProvider>
-      <ResumeProvider resumeId={resumeId}>
-        <ResumeRouter>
-          <Outlet />
-          <DraftDialog />
-        </ResumeRouter>
-      </ResumeProvider>
-    </ToastProvider>
+    <DarkModeProvider>
+      <ToastProvider>
+        <ResumeProvider resumeId={resumeId}>
+          <ResumeRouter>
+            <Outlet />
+            <DraftDialog />
+          </ResumeRouter>
+        </ResumeProvider>
+      </ToastProvider>
+    </DarkModeProvider>
   )
 }
 

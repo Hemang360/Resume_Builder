@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import TypeformOnboarding from '@/components/onboarding/TypeformOnboarding'
 import OnboardingWithPreview from '@/components/onboarding/OnboardingWithPreview'
+import { DarkModeToggle } from '@/components/DarkModeToggle'
 import { highSchoolStudentQuestions } from '@/data/highSchoolQuestions'
 import { useResumeContext } from '@/contexts/ResumeContext'
 
@@ -17,8 +18,10 @@ const OnboardingPage: React.FC = () => {
   const { createResume, setField } = useResumeContext()
   const [currentStep, setCurrentStep] = useState<'typeform' | 'welcome' | 'questions'>('typeform')
   const [userData, setUserData] = useState<OnboardingData | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const handleTypeformComplete = async (data: OnboardingData) => {
+    setIsTransitioning(true)
     setUserData(data)
     
     try {
@@ -39,19 +42,30 @@ const OnboardingPage: React.FC = () => {
       }
       setField('personalInfo', personalInfo)
       
+      // Wait for transition animation
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
       // Move to welcome page
       setCurrentStep('welcome')
+      setIsTransitioning(false)
     } catch (error) {
       console.error('Failed to create resume:', error)
+      setIsTransitioning(false)
     }
   }
 
-  const handleWelcomeNext = () => {
+  const handleWelcomeNext = async () => {
+    setIsTransitioning(true)
+    await new Promise(resolve => setTimeout(resolve, 300))
     setCurrentStep('questions')
+    setIsTransitioning(false)
   }
 
-  const handleWelcomeBack = () => {
+  const handleWelcomeBack = async () => {
+    setIsTransitioning(true)
+    await new Promise(resolve => setTimeout(resolve, 300))
     setCurrentStep('typeform')
+    setIsTransitioning(false)
   }
 
   const handleDetailedOnboardingComplete = () => {
@@ -65,9 +79,16 @@ const OnboardingPage: React.FC = () => {
 
   if (currentStep === 'welcome') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative">
+        {/* Dark Mode Toggle - Top Right */}
+        <div className="absolute top-4 right-4 z-50">
+          <DarkModeToggle />
+        </div>
+        
         <div className="w-full max-w-2xl">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+          <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 text-center transition-all duration-300 ease-in-out ${
+            isTransitioning ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'
+          }`}>
             <div className="mb-8">
               <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6 mx-auto">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

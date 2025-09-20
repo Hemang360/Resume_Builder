@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
+import { DarkModeToggle } from '@/components/DarkModeToggle'
 import { ArrowRight, CheckCircle, Loader2 } from 'lucide-react'
 // Utility function for combining class names
 const cn = (...classes: (string | undefined | null | false)[]) => {
@@ -14,17 +15,22 @@ const LandingPage: React.FC = () => {
   const handleGetStarted = async () => {
     setIsNavigating(true)
     
-    // Add a longer delay for smooth transition
-    await new Promise(resolve => setTimeout(resolve, 600))
+    // Add a delay for smoother transition
+    await new Promise(resolve => setTimeout(resolve, 300))
     
     navigate({ to: '/onboarding' })
   }
 
   return (
     <div className={cn(
-      "min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4 transition-all duration-500 ease-in-out",
-      isNavigating && "opacity-0 scale-95 transform"
+      "min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4 transition-all duration-300 ease-in-out relative",
+      isNavigating && "opacity-0 scale-95 transform translate-y-4"
     )}>
+      {/* Dark Mode Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <DarkModeToggle />
+      </div>
+      
       <div className="text-center max-w-4xl mx-auto">
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
           Build Your Perfect

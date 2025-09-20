@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react'
 import { useResumeContext } from '@/contexts/ResumeContext'
 import { Button } from '@/components/ui/button'
 import { WebSocketStatus } from '@/components/WebSocketStatus'
+import { DarkModeToggle } from '@/components/DarkModeToggle'
 import { 
   Save, 
   Undo, 
@@ -213,6 +214,9 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
           <RotateCcw className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Start Over</span>
         </Button>
+
+        {/* Dark Mode Toggle */}
+        <DarkModeToggle />
 
         {/* Last Saved Timestamp */}
         {lastSaved && !hasUnsavedChanges && !isSaving && (

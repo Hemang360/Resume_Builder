@@ -281,7 +281,7 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
           {/* Question Card */}
           <div className={cn(
             "w-full h-full bg-white dark:bg-slate-800 rounded-r-2xl shadow-xl border-r border-slate-200 dark:border-slate-700 p-8 transition-all duration-300 ease-in-out",
-            isAnimating ? "opacity-0 transform translate-x-8 scale-95" : "opacity-100 transform translate-x-0 scale-100"
+            isAnimating ? "opacity-0 transform translate-x-4" : "opacity-100 transform translate-x-0"
           )}>
                 {/* Question Content */}
                 <div className="min-h-[300px] transition-all duration-300 ease-in-out">

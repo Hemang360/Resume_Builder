@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 import ResumePreview from '@/components/ResumePreview'
 import ControlsBar from '@/components/ControlsBar'
+import { DarkModeToggle } from '@/components/DarkModeToggle'
 import { highSchoolStudentQuestions } from '@/data/highSchoolQuestions'
 import { useResumeContext } from '@/contexts/ResumeContext'
 import { Button } from '@/components/ui/button'
@@ -61,7 +62,12 @@ const HomePage: React.FC = () => {
   const showControls = showOnboarding || !!resume.id
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-900 relative">
+      {/* Dark Mode Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <DarkModeToggle />
+      </div>
+
       {/* Controls Bar - Only show when editing */}
       {showControls && (
         <ControlsBar className="flex-shrink-0" />

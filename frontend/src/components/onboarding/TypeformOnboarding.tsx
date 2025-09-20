@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DarkModeToggle } from '../DarkModeToggle'
 import { ArrowRight, ArrowLeft, User, Mail, Phone, CheckCircle, Loader2 } from 'lucide-react'
 // Utility function for combining class names
 const cn = (...classes: (string | undefined | null | false)[]) => {
@@ -32,6 +33,15 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
   })
   const [isValid, setIsValid] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+
+  // Handle initial load animation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const countryCodes = [
     { code: '+1', country: 'US/Canada', flag: '🇺🇸' },
@@ -155,13 +165,22 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
+    <div className={cn(
+      "min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative transition-all duration-500 ease-in-out",
+      isInitialLoad ? "opacity-0" : "opacity-100"
+    )}>
+      {/* Dark Mode Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <DarkModeToggle />
+      </div>
+      
       <div className="w-full max-w-2xl">
 
         {/* Question Card */}
         <div className={cn(
-          "bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 transition-all duration-300 ease-in-out",
-          isAnimating ? "opacity-0 transform translate-x-8 scale-95" : "opacity-100 transform translate-x-0 scale-100"
+          "bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 transition-all duration-500 ease-in-out",
+          isInitialLoad ? "opacity-0 transform translate-y-4" : 
+          isAnimating ? "opacity-0 transform translate-x-4" : "opacity-100 transform translate-x-0"
         )}>
           {/* Icon */}
           <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6 mx-auto">
@@ -182,7 +201,10 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
             {currentStepData.id === 'mobile' ? (
               <div className="flex gap-2 w-full">
                 <Select value={data.countryCode} onValueChange={handleCountryCodeChange}>
-                  <SelectTrigger className="w-12 h-14 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 text-sm flex-shrink-0">
+                  <SelectTrigger 
+                    className="h-14 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 text-xs flex-shrink-0 px-1"
+                    style={{ width: '60px', maxWidth: '60px' }}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
