@@ -24,11 +24,11 @@ services:
       - key: WEBSOCKET_URL
         value: wss://resume-builder-backend.onrender.com/ws/
 
-  - type: pserv
-    name: resume-builder-db
-    env: postgresql
+databases:
+  - name: resume-builder-db
     plan: free
 
-  - type: redis
-    name: resume-builder-redis
+  - name: resume-builder-redis
     plan: free
+    type: redis
+    ipAllowList: []
