@@ -9,7 +9,10 @@ import DateQuestion from './DateQuestion'
 import { validateAnswer } from '@/utils/validation'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
-import { cn } from '../../lib/utils'
+// Utility function for combining class names
+const cn = (...classes: (string | undefined | null | false)[]) => {
+  return classes.filter(Boolean).join(' ')
+}
 
 interface OnboardingFlowProps {
   questions: Question[]

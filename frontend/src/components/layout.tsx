@@ -1,6 +1,9 @@
 import React from 'react'
 import ControlsBar from './ControlsBar'
-import { cn } from '../lib/utils'
+// Utility function for combining class names
+const cn = (...classes: (string | undefined | null | false)[]) => {
+  return classes.filter(Boolean).join(' ')
+}
 
 interface LayoutProps {
   children: React.ReactNode

@@ -14,7 +14,10 @@ import {
   Loader2,
   RotateCcw
 } from 'lucide-react'
-import { cn } from '../lib/utils'
+// Utility function for combining class names
+const cn = (...classes: (string | undefined | null | false)[]) => {
+  return classes.filter(Boolean).join(' ')
+}
 
 interface ControlsBarProps {
   className?: string

@@ -3,7 +3,10 @@ import { useReactToPrint } from 'react-to-print'
 import { Question } from '@/types/questions'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, Loader2, Target, Lightbulb, GraduationCap, Download } from 'lucide-react'
-import { cn } from '../../lib/utils'
+// Utility function for combining class names
+const cn = (...classes: (string | undefined | null | false)[]) => {
+  return classes.filter(Boolean).join(' ')
+}
 import { useResumeContext } from '@/contexts/ResumeContext'
 import ControlsBar from '../ControlsBar'
 import TextQuestion from './TextQuestion'

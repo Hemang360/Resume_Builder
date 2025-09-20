@@ -2,7 +2,10 @@ import React, { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, CheckCircle, Loader2 } from 'lucide-react'
-import { cn } from '../lib/utils'
+// Utility function for combining class names
+const cn = (...classes: (string | undefined | null | false)[]) => {
+  return classes.filter(Boolean).join(' ')
+}
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate()

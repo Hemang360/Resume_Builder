@@ -1,5 +1,8 @@
 import * as React from "react"
-import { cn } from "../../lib/utils"
+// Utility function for combining class names
+const cn = (...classes: (string | undefined | null | false)[]) => {
+  return classes.filter(Boolean).join(' ')
+}
 
 const Card = React.forwardRef<
   HTMLDivElement,
