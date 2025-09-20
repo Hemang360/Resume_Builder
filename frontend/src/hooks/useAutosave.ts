@@ -51,9 +51,25 @@ export const useAutosave = ({
       'Content-Type': 'application/json',
     }
     
-    if (!isNew && resume.updated_at) {
-      headers['If-Unmodified-Since'] = new Date(resume.updated_at).toUTCString()
-    }
+    // For now, let's disable the If-Unmodified-Since header to avoid 412 errors
+    // This can be re-enabled later with better conflict resolution
+    // if (!isNew && resume.updated_at) {
+    //   try {
+    //     // Handle both string and Date formats
+    //     const updatedAt = typeof resume.updated_at === 'string' 
+    //       ? new Date(resume.updated_at) 
+    //       : resume.updated_at
+    //     
+    //     // Only add the header if we have a valid date
+    //     if (updatedAt && !isNaN(updatedAt.getTime())) {
+    //       headers['If-Unmodified-Since'] = updatedAt.toUTCString()
+    //       console.log('Sending If-Unmodified-Since:', updatedAt.toUTCString(), 'for resume:', resume.id)
+    //     }
+    //   } catch (error) {
+    //     console.warn('Failed to parse updated_at timestamp:', resume.updated_at, error)
+    //     // Don't add the header if parsing fails
+    //   }
+    // }
     
     const response = await fetch(url, {
       method,
@@ -66,6 +82,7 @@ export const useAutosave = ({
     if (response.status === 412) {
       // Handle conflict
       const conflictData = await response.json()
+      console.warn('Conflict detected:', conflictData)
       throw new ConflictError('Resume was modified by another process', conflictData)
     }
 

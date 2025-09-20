@@ -7,18 +7,46 @@ from django.utils.http import parse_http_date_safe, http_date
 from datetime import datetime
 import zoneinfo
 import json
+from typing import Dict, Any
 from weasyprint import HTML, CSS
 from weasyprint.text.fonts import FontConfiguration
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from .models import Resume
 from .serializers import ResumeSerializer, ResumeConflictSerializer
 
 
 class ResumeViewSet(viewsets.ModelViewSet):
-    queryset = Resume.objects.all()
+    queryset = Resume.objects.all()  # type: ignore
     serializer_class = ResumeSerializer
 
     # Only allow specific actions
     http_method_names = ['get', 'post', 'patch', 'head', 'options']
+
+    def broadcast_resume_update(self, resume: Resume, action: str = 'update') -> None:
+        """Broadcast resume update to WebSocket clients"""
+        try:
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                room_group_name = f'resume_{resume.id}'
+                resume_data = {
+                    'id': resume.id,
+                    'content': resume.content,
+                    'created_at': resume.created_at.isoformat(),  # type: ignore
+                    'updated_at': resume.updated_at.isoformat(),  # type: ignore
+                }
+
+                async_to_sync(channel_layer.group_send)(
+                    room_group_name,
+                    {
+                        'type': f'resume_{action}',
+                        'data': resume_data
+                    }
+                )
+        except Exception as e:
+            # Log the error but don't fail the request
+            print(f"WebSocket broadcast failed: {e}")
+            pass
 
     def list(self, request, *args, **kwargs):
         """List all resumes"""
@@ -28,14 +56,16 @@ class ResumeViewSet(viewsets.ModelViewSet):
         """Create a new resume"""
         response = super().create(request, *args, **kwargs)
 
-        # Add Last-Modified header
+        # Add Last-Modified header and broadcast WebSocket message
         if response.status_code == 201:
-            resume_id = response.data.get('id')
+            resume_id = response.data.get('id') if response.data else None
             if resume_id:
                 try:
-                    resume = Resume.objects.get(id=resume_id)
+                    resume = Resume.objects.get(id=resume_id)  # type: ignore
                     response['Last-Modified'] = http_date(resume.updated_at.timestamp())
-                except Resume.DoesNotExist:
+                    # Broadcast resume creation
+                    self.broadcast_resume_update(resume, 'created')
+                except Resume.DoesNotExist:  # type: ignore
                     pass
 
         return response
@@ -104,6 +134,9 @@ class ResumeViewSet(viewsets.ModelViewSet):
         # Add Last-Modified header with the new timestamp
         response['Last-Modified'] = http_date(updated_resume.updated_at.timestamp())
 
+        # Broadcast resume update to WebSocket clients
+        self.broadcast_resume_update(updated_resume, 'update')
+
         return response
 
     def update(self, request, *args, **kwargs):
@@ -161,7 +194,7 @@ class ResumeViewSet(viewsets.ModelViewSet):
 
             return response
 
-        except Resume.DoesNotExist:
+        except Resume.DoesNotExist:  # type: ignore
             return Response(
                 {'error': 'Resume not found'},
                 status=status.HTTP_404_NOT_FOUND
@@ -204,7 +237,7 @@ class ResumeViewSet(viewsets.ModelViewSet):
             'current_updated_at': resume.updated_at
         })
 
-    def generate_content_diff(self, current, provided):
+    def generate_content_diff(self, current: Dict[str, Any], provided: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate a simple diff between current and provided content
         """
@@ -231,11 +264,13 @@ class ResumeViewSet(viewsets.ModelViewSet):
 
         return diff
 
-    def prepare_resume_context(self, resume):
+    def prepare_resume_context(self, resume: Resume) -> Dict[str, Any]:
         """
         Prepare resume data for template rendering
         """
         content = resume.content or {}
+        if not isinstance(content, dict):
+            content = {}
 
         # Extract and structure data
         personal_info = content.get('personalInfo', {})
@@ -275,14 +310,14 @@ class ResumeViewSet(viewsets.ModelViewSet):
             'current_year': 2025,
         }
 
-    def get_full_name(self, content):
+    def get_full_name(self, content: Dict[str, Any]) -> str:
         """Extract full name from resume content"""
         personal_info = content.get('personalInfo', {}) if content else {}
         first_name = personal_info.get('firstName', '')
         last_name = personal_info.get('lastName', '')
         return f"{first_name} {last_name}".strip() or "Resume"
 
-    def generate_pdf(self, html_string):
+    def generate_pdf(self, html_string: str) -> bytes:
         """
         Generate PDF from HTML string using WeasyPrint
         """
@@ -324,4 +359,4 @@ class ResumeViewSet(viewsets.ModelViewSet):
         html_doc = HTML(string=html_string)
         pdf_bytes = html_doc.write_pdf(stylesheets=[css], font_config=font_config)
 
-        return pdf_bytes
+        return pdf_bytes or b''

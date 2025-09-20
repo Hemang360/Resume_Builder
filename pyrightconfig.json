@@ -1,0 +1,30 @@
+{
+  "venvPath": "./backend",
+  "venv": "venv",
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "include": [
+    "backend/resumes",
+    "backend/resume_api"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/migrations",
+    "**/staticfiles",
+    "frontend"
+  ],
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": false,
+  "typeCheckingMode": "basic",
+  "executionEnvironments": [
+    {
+      "root": "./backend",
+      "pythonVersion": "3.12",
+      "pythonPlatform": "Linux",
+      "extraPaths": [
+        "./backend"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, useState } from 'react'
 import { Resume, ResumeContent, ResumeState, PendingEdit, LocalStorageData, DraftDialogData } from '@/types/resume'
 import { useAutosave } from '@/hooks/useAutosave'
+import { useWebSocket, WebSocketMessage } from '@/hooks/useWebSocket'
+import { useToast } from '@/components/ui/toast'
 
 // Action types for reducer
 type ResumeAction =
@@ -27,17 +29,27 @@ interface ResumeContextType {
   hasPendingDraft: boolean
   showDraftDialog: boolean
   
+  // WebSocket state
+  isWebSocketConnected: boolean
+  isWebSocketConnecting: boolean
+  webSocketError?: string
+  
   // Actions
   setField: (path: string, value: unknown) => void
   createResume: () => Promise<void>
   saveResume: () => Promise<void>
   undo: () => void
   exportToPDF: () => Promise<void>
+  startOver: () => void
   
   // Draft management
   restoreDraft: () => void
   discardDraft: () => void
   getDraftPreview: () => DraftDialogData | null
+  
+  // WebSocket actions
+  reconnectWebSocket: () => void
+  checkWebSocketConnection: () => void
   
   // Utility
   canUndo: boolean
@@ -51,6 +63,7 @@ const STORAGE_KEYS = {
   HISTORY: 'resume_history_',
   PENDING_EDITS: 'resume_pending_edits_',
   LAST_SAVED: 'resume_last_saved_',
+  CURRENT_RESUME_ID: 'current_resume_id',
 } as const
 
 // Storage utility class
@@ -159,6 +172,31 @@ class ResumeStorage {
   static clearAll(resumeId?: string): void {
     this.clearPendingEdits(resumeId)
     this.clearHistory(resumeId)
+  }
+
+  static saveCurrentResumeId(resumeId: string): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_RESUME_ID, resumeId)
+    } catch (error) {
+      console.warn('Failed to save current resume ID to localStorage:', error)
+    }
+  }
+
+  static loadCurrentResumeId(): string | null {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.CURRENT_RESUME_ID)
+    } catch (error) {
+      console.warn('Failed to load current resume ID from localStorage:', error)
+      return null
+    }
+  }
+
+  static clearCurrentResumeId(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_RESUME_ID)
+    } catch (error) {
+      console.warn('Failed to clear current resume ID from localStorage:', error)
+    }
   }
 }
 
@@ -314,6 +352,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
   resumeId 
 }) => {
   const [state, dispatch] = useReducer(resumeReducer, initialState)
+  const { toast } = useToast()
   
   // History stack for undo functionality (max 20 entries)
   const historyStack = useRef<Resume[]>([])
@@ -324,6 +363,67 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
   
   // Draft dialog state
   const [draftDialogData, setDraftDialogData] = useState<DraftDialogData | null>(null)
+
+  // WebSocket message handler
+  const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
+    switch (message.type) {
+      case 'resume_update':
+      case 'resume_created':
+        if (message.data && message.data.id === resumeId) {
+          // Update resume with server data
+          const updatedResume: Resume = {
+            id: message.data.id,
+            content: message.data.content,
+            created_at: message.data.created_at,
+            updated_at: message.data.updated_at
+          }
+          dispatch({ type: 'SET_RESUME', payload: updatedResume })
+          dispatch({ type: 'SET_LAST_SAVED', payload: new Date() })
+          
+          // Clear any pending edits since server has the latest
+          pendingEdits.current = []
+          ResumeStorage.clearPendingEdits(resumeId)
+        }
+        break
+      case 'resume_deleted':
+        if (message.data && message.data.id === resumeId) {
+          dispatch({ type: 'SET_ERROR', payload: 'Resume was deleted by another user' })
+        }
+        break
+      case 'pong':
+        // Handle ping/pong for connection health
+        break
+      case 'error':
+        console.error('WebSocket error:', message.message)
+        break
+      default:
+        console.log('Unknown WebSocket message type:', message.type)
+    }
+  }, [resumeId])
+
+  // WebSocket connection
+  const {
+    isConnected: isWebSocketConnected,
+    isConnecting: isWebSocketConnecting,
+    error: webSocketError,
+    sendMessage,
+    reconnect: reconnectWebSocket,
+    checkConnection: checkWebSocketConnection
+  } = useWebSocket({
+    resumeId,
+    onMessage: handleWebSocketMessage,
+    onConnect: () => {
+      console.log('WebSocket connected for resume:', resumeId)
+      // Send ping to test connection
+      sendMessage({ type: 'ping' })
+    },
+    onDisconnect: () => {
+      console.log('WebSocket disconnected for resume:', resumeId)
+    },
+    onError: (error) => {
+      console.error('WebSocket error for resume:', resumeId, error)
+    }
+  })
 
   // Load history from localStorage
   useEffect(() => {
@@ -367,11 +467,25 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
         if (!state.resume.id && savedResume.id) {
           dispatch({ type: 'SET_RESUME', payload: savedResume })
         }
+        
+        // Show success toast
+        toast({
+          title: 'Resume saved',
+          description: 'Your changes have been saved successfully',
+          type: 'success'
+        })
       }
     },
     onSaveError: (error: string) => {
       dispatch({ type: 'SET_SAVING', payload: false })
       dispatch({ type: 'SET_ERROR', payload: error })
+      
+      // Show error toast
+      toast({
+        title: 'Save failed',
+        description: error,
+        type: 'error'
+      })
     }
   })
 
@@ -428,6 +542,11 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
       const newResume: Resume = await response.json()
       dispatch({ type: 'SET_RESUME', payload: newResume })
       dispatch({ type: 'SET_LAST_SAVED', payload: new Date() })
+      
+      // Save resume ID to localStorage for persistence across page refreshes
+      if (newResume.id) {
+        ResumeStorage.saveCurrentResumeId(newResume.id)
+      }
       
       // Clear history and pending edits when creating new resume
       historyStack.current = []
@@ -518,6 +637,31 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     }
   }, [state.resume])
 
+  // Start over - clear all data and navigate to home
+  const startOver = useCallback(() => {
+    // Clear all localStorage data
+    ResumeStorage.clearAll(resumeId)
+    ResumeStorage.clearCurrentResumeId()
+    
+    // Reset state to initial
+    dispatch({ type: 'SET_RESUME', payload: { content: initialResumeContent } })
+    dispatch({ type: 'SET_LOADING', payload: false })
+    dispatch({ type: 'SET_SAVING', payload: false })
+    dispatch({ type: 'SET_ERROR', payload: undefined })
+    // Don't set lastSaved when starting over
+    dispatch({ type: 'SET_UNSAVED_CHANGES', payload: false })
+    dispatch({ type: 'SET_PENDING_DRAFT', payload: false })
+    dispatch({ type: 'SET_SHOW_DRAFT_DIALOG', payload: false })
+    
+    // Clear history and pending edits
+    historyStack.current = []
+    historyIndex.current = -1
+    pendingEdits.current = []
+    
+    // Navigate to home page
+    window.location.href = '/'
+  }, [resumeId])
+
   // Draft management functions
   const getDraftPreview = useCallback((): DraftDialogData | null => {
     return draftDialogData
@@ -583,6 +727,38 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
             dispatch({ type: 'SET_SHOW_DRAFT_DIALOG', payload: true })
           }
           
+          // Check if the loaded resume has meaningful content
+          // This should be more conservative - only consider it complete if there's substantial content
+          const hasMeaningfulContent = (content: any) => {
+            if (!content || typeof content !== 'object') return false
+            
+            // Don't consider it complete with just basic personal info
+            // Check if there's substantial content beyond basic details
+            const substantialFields = ['education', 'skills', 'experience', 'projects', 'essays', 'extracurriculars']
+            for (const field of substantialFields) {
+              if (content[field] && (
+                (Array.isArray(content[field]) && content[field].length > 0) ||
+                (typeof content[field] === 'object' && Object.keys(content[field]).length > 0)
+              )) {
+                return true
+              }
+            }
+            
+            return false
+          }
+
+          // If the resume has no meaningful content, clear the stored resume ID
+          // BUT only if we're not in the onboarding process
+          if (!hasMeaningfulContent(serverResume.content)) {
+            const currentPath = window.location.pathname
+            if (currentPath !== '/onboarding') {
+              console.log('Loaded resume has no meaningful content, clearing stored resume ID')
+              ResumeStorage.clearCurrentResumeId()
+              // Don't set the resume, let the app start fresh
+              return
+            }
+          }
+
           // Load the server version first
           dispatch({ type: 'SET_RESUME', payload: serverResume })
           dispatch({ type: 'SET_LAST_SAVED', payload: new Date() })
@@ -616,6 +792,17 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     }
   }, [resumeId])
 
+  // Periodic WebSocket connection check
+  useEffect(() => {
+    if (!resumeId || !isWebSocketConnected) return
+
+    const interval = setInterval(() => {
+      checkWebSocketConnection()
+    }, 30000) // Check every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [resumeId, isWebSocketConnected, checkWebSocketConnection])
+
   // Context value
   const contextValue: ResumeContextType = {
     // State
@@ -628,17 +815,27 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     hasPendingDraft: state.hasPendingDraft,
     showDraftDialog: state.showDraftDialog,
     
+    // WebSocket state
+    isWebSocketConnected,
+    isWebSocketConnecting,
+    webSocketError: webSocketError || undefined,
+    
     // Actions
     setField,
     createResume,
     saveResume,
     undo,
     exportToPDF,
+    startOver,
     
     // Draft management
     restoreDraft,
     discardDraft,
     getDraftPreview,
+    
+    // WebSocket actions
+    reconnectWebSocket,
+    checkWebSocketConnection,
     
     // Utility
     canUndo: historyIndex.current > 0
