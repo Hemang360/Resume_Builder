@@ -55,7 +55,9 @@ export const useWebSocket = ({
       throw new Error('Resume ID is required for WebSocket connection')
     }
     
-    return `${baseUrl}/ws/resume/${resumeId}/`
+    const wsUrl = `${baseUrl}/ws/resume/${resumeId}/`
+    console.log('WebSocket URL:', wsUrl)
+    return wsUrl
   }, [resumeId])
 
   const connect = useCallback(() => {
@@ -68,6 +70,7 @@ export const useWebSocket = ({
 
     try {
       const wsUrl = getWebSocketUrl()
+      console.log('Attempting WebSocket connection to:', wsUrl)
       const ws = new WebSocket(wsUrl)
       
       ws.onopen = () => {
@@ -225,8 +228,13 @@ export const useWebSocket = ({
 
   // Connect on mount and when resumeId changes
   useEffect(() => {
+    console.log('WebSocket useEffect triggered with resumeId:', resumeId)
     if (resumeId) {
+      console.log('Attempting WebSocket connection for resumeId:', resumeId)
       connect()
+    } else {
+      console.log('No resumeId, disconnecting WebSocket')
+      disconnect()
     }
 
     return () => {

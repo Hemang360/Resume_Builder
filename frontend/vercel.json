@@ -3,6 +3,23 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "npm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
   "env": {
     "VITE_API_BASE_URL": "https://resume-builder-backend-7wxd.onrender.com",
     "VITE_WS_BASE_URL": "wss://resume-builder-backend-7wxd.onrender.com"

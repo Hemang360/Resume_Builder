@@ -413,7 +413,14 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     }
   }, [resumeId])
 
-  // WebSocket connection
+  // WebSocket connection - only connect if we have a resume ID and resume is loaded
+  const shouldConnectWebSocket = resumeId && !state.isLoading && state.resume.id
+  console.log('WebSocket connection check:', { 
+    resumeId, 
+    isLoading: state.isLoading, 
+    resumeIdFromState: state.resume.id, 
+    shouldConnect: shouldConnectWebSocket 
+  })
   const {
     isConnected: isWebSocketConnected,
     isConnecting: isWebSocketConnecting,
@@ -422,7 +429,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     reconnect: reconnectWebSocket,
     checkConnection: checkWebSocketConnection
   } = useWebSocket({
-    resumeId,
+    resumeId: shouldConnectWebSocket ? resumeId : undefined,
     onMessage: handleWebSocketMessage,
     onConnect: () => {
       console.log('WebSocket connected for resume:', resumeId)

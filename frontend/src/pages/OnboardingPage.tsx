@@ -73,7 +73,10 @@ const OnboardingPage: React.FC = () => {
 
     // Only initialize if we have resume data and it's not loading
     if (resume.content && !isLoading) {
-      initializeOnboarding()
+      // Add a small delay to ensure WebSocket connection is established
+      setTimeout(() => {
+        initializeOnboarding()
+      }, 100)
     } else if (!isLoading) {
       // If we're not loading and have no resume content, start from typeform
       console.log('No resume content, starting from typeform')
