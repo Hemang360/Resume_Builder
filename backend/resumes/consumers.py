@@ -6,11 +6,8 @@ from .models import Resume
 
 class ResumeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        print(f"WebSocket connection attempt for resume: {self.scope}")
         self.resume_id = self.scope['url_route']['kwargs']['resume_id']
         self.room_group_name = f'resume_{self.resume_id}'
-        
-        print(f"Connecting to room: {self.room_group_name}")
 
         # Join room group
         await self.channel_layer.group_add(
@@ -19,7 +16,6 @@ class ResumeConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
-        print(f"WebSocket connection accepted for resume: {self.resume_id}")
 
         # Send initial resume data
         resume_data = await self.get_resume_data()
