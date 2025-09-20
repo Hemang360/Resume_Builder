@@ -51,6 +51,10 @@ interface ResumeContextType {
   reconnectWebSocket: () => void
   checkWebSocketConnection: () => void
   
+  // Onboarding progress management
+  updateOnboardingProgress: (questionIndex: number, answers: Record<string, any>, completedQuestions: string[]) => void
+  getOnboardingProgress: () => { questionIndex: number; answers: Record<string, any>; completedQuestions: string[] }
+  
   // Utility
   canUndo: boolean
   canRedo: boolean
@@ -258,7 +262,13 @@ const initialResumeContent: ResumeContent = {
   essays: {},
   academics: {},
   extracurriculars: [],
-  careerInterests: []
+  careerInterests: [],
+  onboardingProgress: {
+    currentQuestionIndex: 0,
+    answers: {},
+    completedQuestions: [],
+    lastUpdated: new Date().toISOString()
+  }
 }
 
 const initialState: ResumeState = {
@@ -823,6 +833,33 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     return () => clearInterval(interval)
   }, [resumeId, isWebSocketConnected, checkWebSocketConnection])
 
+  // Onboarding progress management functions
+  const updateOnboardingProgress = useCallback((questionIndex: number, answers: Record<string, any>, completedQuestions: string[]) => {
+    const progress = {
+      currentQuestionIndex: questionIndex,
+      answers,
+      completedQuestions,
+      lastUpdated: new Date().toISOString()
+    }
+    setField('onboardingProgress', progress)
+  }, [setField])
+
+  const getOnboardingProgress = useCallback(() => {
+    const progress = state.resume.content.onboardingProgress
+    if (!progress) {
+      return {
+        questionIndex: 0,
+        answers: {},
+        completedQuestions: []
+      }
+    }
+    return {
+      questionIndex: progress.currentQuestionIndex || 0,
+      answers: progress.answers || {},
+      completedQuestions: progress.completedQuestions || []
+    }
+  }, [state.resume.content.onboardingProgress])
+
   // Context value
   const contextValue: ResumeContextType = {
     // State
@@ -856,6 +893,10 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     // WebSocket actions
     reconnectWebSocket,
     checkWebSocketConnection,
+    
+    // Onboarding progress management
+    updateOnboardingProgress,
+    getOnboardingProgress,
     
     // Utility
     canUndo: historyIndex.current > 0,

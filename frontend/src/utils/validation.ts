@@ -29,6 +29,15 @@ export const validateAnswer = (value: unknown, rule: ValidationRule): string | n
       }
       break
 
+    case 'actScore':
+      if (value) {
+        const score = parseInt(String(value))
+        if (isNaN(score) || score < 1 || score > 36) {
+          return rule.message
+        }
+      }
+      break
+
     case 'toeflScore':
       if (value) {
         const score = parseInt(String(value))
@@ -157,6 +166,11 @@ export const formatInput = (value: string, format: string): string => {
       return sat ? Math.min(parseInt(sat), 1600).toString() : ''
     }
 
+    case 'act': {
+      const act = value.replace(/[^0-9]/g, '')
+      return act ? Math.min(parseInt(act), 36).toString() : ''
+    }
+
     case 'toefl': {
       const toefl = value.replace(/[^0-9]/g, '')
       return toefl ? Math.min(parseInt(toefl), 120).toString() : ''
@@ -192,6 +206,17 @@ export const getWarning = (value: unknown, question: unknown): string | null => 
     }
     if (score < 1200) {
       return 'Good score! Top-tier universities typically prefer 1400+'
+    }
+  }
+
+  // ACT Score warnings
+  if (question && typeof question === 'object' && 'format' in question && question.format === 'act' && value) {
+    const score = parseInt(String(value))
+    if (score < 24) {
+      return 'Consider retaking - most competitive universities prefer 28+'
+    }
+    if (score < 28) {
+      return 'Good score! Top-tier universities typically prefer 32+'
     }
   }
 

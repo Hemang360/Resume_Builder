@@ -61,7 +61,9 @@ export interface Reference {
 
 export interface Academics {
   satScore?: string
+  actScore?: string
   toeflScore?: string
+  ieltsScore?: string
   gpa?: string
 }
 
@@ -69,6 +71,13 @@ export interface Essays {
   leadership?: string
   personalStatement?: string
   whyThisSchool?: string
+}
+
+export interface OnboardingProgress {
+  currentQuestionIndex: number
+  answers: Record<string, any>
+  completedQuestions: string[]
+  lastUpdated: string
 }
 
 export interface ResumeContent extends Record<string, unknown> {
@@ -85,6 +94,7 @@ export interface ResumeContent extends Record<string, unknown> {
   academics?: Academics
   extracurriculars?: string[]
   careerInterests?: string[]
+  onboardingProgress?: OnboardingProgress
 }
 
 export interface Resume {

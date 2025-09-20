@@ -71,8 +71,18 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
           processedValue = parts[0] + '.' + parts.slice(1).join('')
         }
       }
+    } else if (question.format === 'ielts') {
+      // For IELTS: allow numbers and decimal point only
+      processedValue = rawValue.replace(/[^\d.]/g, '')
+      // Ensure only one decimal point
+      const parts = processedValue.split('.')
+      if (parts.length > 2) {
+        processedValue = parts[0] + '.' + parts.slice(1).join('')
+      }
+      // Don't apply formatInput here as it will round immediately
+      // Let the user type the decimal first, then round on blur or validation
     } else if (question.format) {
-      // Apply other formatting for non-GPA fields
+      // Apply other formatting for non-GPA, non-IELTS fields
       processedValue = formatInput(rawValue, question.format)
     }
 
@@ -86,9 +96,25 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
     }
   }
 
+  const handleBlur = () => {
+    // Apply IELTS formatting on blur to round to nearest 0.5
+    if (question.format === 'ielts' && formattedValue) {
+      const rounded = formatInput(formattedValue, 'ielts')
+      setFormattedValue(rounded)
+      onChange(rounded)
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      
+      // Apply IELTS formatting before proceeding
+      if (question.format === 'ielts' && formattedValue) {
+        const rounded = formatInput(formattedValue, 'ielts')
+        setFormattedValue(rounded)
+        onChange(rounded)
+      }
       
       // The onChange in handleChange already handles the % symbol
       // Just proceed to next question
@@ -158,6 +184,7 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
                 value={formattedValue}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
                 placeholder={selectedFormat === 'gpa' ? '3.85' : '92'}
                 className={`text-lg py-6 pr-10 transition-colors ${
                   error 
@@ -200,25 +227,26 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
           </div>
         ) : (
           <div className="relative">
-            <Input
-              ref={inputRef}
-              type={question.inputType || 'text'}
-              value={formattedValue}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              placeholder={question.placeholder}
-              className={`text-lg py-6 pr-10 transition-colors ${
-                error 
-                  ? 'border-red-500 focus:border-red-500' 
-                  : warning
-                  ? 'border-amber-500 focus:border-amber-500'
-                  : isValid
-                  ? 'border-green-500 focus:border-green-500'
-                  : ''
-              }`}
-              aria-invalid={!!error}
-              aria-describedby={error ? `${question.id}-error` : undefined}
-            />
+              <Input
+                ref={inputRef}
+                type={question.inputType || 'text'}
+                value={formattedValue}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
+                placeholder={question.placeholder}
+                className={`text-lg py-6 pr-10 transition-colors ${
+                  error 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : warning
+                    ? 'border-amber-500 focus:border-amber-500'
+                    : isValid
+                    ? 'border-green-500 focus:border-green-500'
+                    : ''
+                }`}
+                aria-invalid={!!error}
+                aria-describedby={error ? `${question.id}-error` : undefined}
+              />
             
             {/* Status Icon */}
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

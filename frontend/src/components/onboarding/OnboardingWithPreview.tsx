@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import { Question } from '@/types/questions'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
   onBackToWelcome,
   startFromQuestionId
 }) => {
-  const { setField, resume } = useResumeContext()
+  const { setField, resume, updateOnboardingProgress, getOnboardingProgress } = useResumeContext()
   
   // Find the starting question index
   const getStartingIndex = () => {
@@ -40,8 +40,20 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
     return 0
   }
   
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(getStartingIndex())
-  const [answers, setAnswers] = useState<Record<string, any>>({})
+  // Initialize state from persistent storage or defaults
+  const initializeState = () => {
+    const progress = getOnboardingProgress()
+    return {
+      questionIndex: startFromQuestionId ? getStartingIndex() : progress.questionIndex,
+      answers: progress.answers,
+      completedQuestions: progress.completedQuestions
+    }
+  }
+  
+  const initialState = initializeState()
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialState.questionIndex)
+  const [answers, setAnswers] = useState<Record<string, any>>(initialState.answers)
+  const [completedQuestions, setCompletedQuestions] = useState<string[]>(initialState.completedQuestions)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isAnimating, setIsAnimating] = useState(false)
   const resumeRef = useRef<HTMLDivElement>(null)
@@ -49,6 +61,19 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
   const currentQuestion = questions[currentQuestionIndex]
   const isFirstQuestion = currentQuestionIndex === 0
   const isLastQuestion = currentQuestionIndex === questions.length - 1
+
+  // Save progress to backend
+  const saveProgress = useCallback(() => {
+    updateOnboardingProgress(currentQuestionIndex, answers, completedQuestions)
+  }, [currentQuestionIndex, answers, completedQuestions, updateOnboardingProgress])
+
+  // Save progress when component mounts or when key state changes
+  useEffect(() => {
+    // Only save if we have meaningful progress (not just initial state)
+    if (Object.keys(answers).length > 0 || completedQuestions.length > 0 || currentQuestionIndex > 0) {
+      saveProgress()
+    }
+  }, [saveProgress])
 
   // Check if we should show the ControlsBar (starting from SAT question)
   const shouldShowControlsBar = () => {
@@ -99,10 +124,22 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
   }, [currentQuestion])
 
   const handleAnswerChange = useCallback((value: any) => {
-    setAnswers(prev => ({
-      ...prev,
+    const newAnswers = {
+      ...answers,
       [currentQuestion.id]: value
-    }))
+    }
+    setAnswers(newAnswers)
+    
+    // Mark question as completed if it has a value
+    if (value && (Array.isArray(value) ? value.length > 0 : value.toString().trim() !== '')) {
+      const newCompletedQuestions = completedQuestions.includes(currentQuestion.id) 
+        ? completedQuestions 
+        : [...completedQuestions, currentQuestion.id]
+      setCompletedQuestions(newCompletedQuestions)
+      
+      // Save progress to backend
+      updateOnboardingProgress(currentQuestionIndex, newAnswers, newCompletedQuestions)
+    }
     
     // Clear error when user starts typing
     if (errors[currentQuestion.id]) {
@@ -136,7 +173,12 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
     if (isLastQuestion) {
       onComplete?.()
     } else {
-      setCurrentQuestionIndex(prev => prev + 1)
+      const newIndex = currentQuestionIndex + 1
+      setCurrentQuestionIndex(newIndex)
+      
+      // Save progress with new question index
+      updateOnboardingProgress(newIndex, answers, completedQuestions)
+      
       setErrors(prev => ({
         ...prev,
         [currentQuestion.id]: ''
@@ -144,7 +186,7 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
     }
     
     setIsAnimating(false)
-  }, [getCurrentAnswer, validateCurrentAnswer, currentQuestion, isLastQuestion, onComplete])
+  }, [getCurrentAnswer, validateCurrentAnswer, currentQuestion, isLastQuestion, onComplete, currentQuestionIndex, answers, completedQuestions, updateOnboardingProgress])
 
   const goToPrevious = useCallback(async () => {
     if (isFirstQuestion) {
@@ -156,9 +198,14 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
     setIsAnimating(true)
     await new Promise(resolve => setTimeout(resolve, 200))
     
-    setCurrentQuestionIndex(prev => prev - 1)
+    const newIndex = currentQuestionIndex - 1
+    setCurrentQuestionIndex(newIndex)
+    
+    // Save progress with new question index
+    updateOnboardingProgress(newIndex, answers, completedQuestions)
+    
     setTimeout(() => setIsAnimating(false), 50)
-  }, [isFirstQuestion, onBackToWelcome])
+  }, [isFirstQuestion, onBackToWelcome, currentQuestionIndex, answers, completedQuestions, updateOnboardingProgress])
 
 
   const renderQuestion = () => {

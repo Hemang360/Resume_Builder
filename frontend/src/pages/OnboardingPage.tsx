@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import TypeformOnboarding from '@/components/onboarding/TypeformOnboarding'
 import OnboardingWithPreview from '@/components/onboarding/OnboardingWithPreview'
@@ -15,10 +15,70 @@ interface OnboardingData {
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate()
-  const { createResume, setField } = useResumeContext()
+  const { createResume, setField, getOnboardingProgress, resume, isLoading } = useResumeContext()
   const [currentStep, setCurrentStep] = useState<'typeform' | 'welcome' | 'questions'>('typeform')
   const [userData, setUserData] = useState<OnboardingData | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
+
+  // Check for existing progress on mount
+  useEffect(() => {
+    const initializeOnboarding = () => {
+      console.log('Initializing onboarding with resume:', resume)
+      
+      // Check if we have a resume with personal info (indicates typeform was completed)
+      const hasPersonalInfo = resume.content.personalInfo?.name && 
+                             resume.content.personalInfo?.email
+      
+      // Check if we have onboarding progress
+      const progress = getOnboardingProgress()
+      const hasProgress = progress.questionIndex > 0 || 
+                         Object.keys(progress.answers).length > 0 ||
+                         progress.completedQuestions.length > 0
+
+      console.log('Has personal info:', hasPersonalInfo)
+      console.log('Has progress:', hasProgress)
+      console.log('Progress details:', progress)
+
+      if (hasPersonalInfo && hasProgress) {
+        // We have both personal info and progress, go directly to questions
+        console.log('Going to questions step')
+        setUserData({
+          name: resume.content.personalInfo.name,
+          email: resume.content.personalInfo.email,
+          mobile: resume.content.personalInfo.phone?.replace(/^\+\d+\s/, '') || '',
+          countryCode: resume.content.personalInfo.phone?.match(/^\+\d+/)?.[0] || '+1'
+        })
+        setCurrentStep('questions')
+      } else if (hasPersonalInfo) {
+        // We have personal info but no progress, go to welcome page
+        console.log('Going to welcome step')
+        setUserData({
+          name: resume.content.personalInfo.name,
+          email: resume.content.personalInfo.email,
+          mobile: resume.content.personalInfo.phone?.replace(/^\+\d+\s/, '') || '',
+          countryCode: resume.content.personalInfo.phone?.match(/^\+\d+/)?.[0] || '+1'
+        })
+        setCurrentStep('welcome')
+      } else {
+        // No personal info, start from typeform
+        console.log('Going to typeform step')
+        setCurrentStep('typeform')
+      }
+      
+      setIsInitialized(true)
+    }
+
+    // Only initialize if we have resume data and it's not loading
+    if (resume.content && !isLoading) {
+      initializeOnboarding()
+    } else if (!isLoading) {
+      // If we're not loading and have no resume content, start from typeform
+      console.log('No resume content, starting from typeform')
+      setCurrentStep('typeform')
+      setIsInitialized(true)
+    }
+  }, [resume.content, getOnboardingProgress, isLoading])
 
   const handleTypeformComplete = async (data: OnboardingData) => {
     setIsTransitioning(true)
@@ -71,6 +131,18 @@ const OnboardingPage: React.FC = () => {
   const handleDetailedOnboardingComplete = () => {
     // Navigate to the main resume builder
     navigate({ to: '/builder' })
+  }
+
+  // Show loading while initializing or while resume is loading
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading your progress...</p>
+        </div>
+      </div>
+    )
   }
 
   if (currentStep === 'typeform') {

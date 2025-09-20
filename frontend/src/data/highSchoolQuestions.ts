@@ -79,6 +79,32 @@ export const enhancedHighSchoolQuestions: Question[] = [
     }
   },
   {
+    id: 'act_score',
+    type: 'text',
+    inputType: 'number',
+    format: 'act',
+    title: "What's your ACT score?",
+    subtitle: "Enter your highest composite ACT score (optional if you took SAT instead)",
+    placeholder: "32",
+    jsonPath: 'academics.actScore',
+    validation: [
+      { type: 'actScore', message: 'ACT scores range from 1-36' }
+    ],
+    tooltip: {
+      title: 'ACT Score Requirements',
+      content: 'ACT scores are widely accepted by US universities and provide an alternative to SAT scores for demonstrating academic readiness.',
+      tips: [
+        'Use your highest composite score',
+        'Scores above 30 are competitive for top universities',
+        'Submit official scores directly from ACT',
+        'Consider retaking if below target university averages',
+        'ACT includes Science section unlike SAT'
+      ],
+      examples: ['32', '28', '35'],
+      admissionNote: 'Universities accept either SAT or ACT scores. ACT scores are particularly valued for their Science section and straightforward scoring.'
+    }
+  },
+  {
     id: 'toefl_score',
     type: 'text',
     inputType: 'number',
@@ -101,6 +127,32 @@ export const enhancedHighSchoolQuestions: Question[] = [
       ],
       examples: ['105', '95', '112'],
       admissionNote: 'Universities use TOEFL to ensure you can succeed in English-medium instruction. Higher scores may exempt you from additional English courses.'
+    }
+  },
+  {
+    id: 'ielts_score',
+    type: 'text',
+    inputType: 'text',
+    format: 'ielts',
+    title: "Do you have an IELTS score?",
+    subtitle: "Alternative English proficiency test accepted by many universities worldwide",
+    placeholder: "7.5",
+    jsonPath: 'academics.ieltsScore',
+    validation: [
+      { type: 'ieltsScore', message: 'IELTS scores range from 0.0-9.0' }
+    ],
+    tooltip: {
+      title: 'IELTS Requirements for International Students',
+      content: 'IELTS Academic demonstrates your English proficiency for academic success in English-speaking universities.',
+      tips: [
+        'Minimum 6.0-6.5 for most universities',
+        'Top universities typically require 7.0+',
+        'Some programs may require 7.5 or higher',
+        'Valid for 2 years from test date',
+        'Enter overall band score (e.g., 7.5)'
+      ],
+      examples: ['7.5', '6.5', '8.0', '7.0'],
+      admissionNote: 'IELTS is widely accepted by universities in the UK, Australia, Canada, and many US institutions. Higher scores demonstrate strong English proficiency for academic success.'
     }
   },
   {

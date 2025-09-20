@@ -13,7 +13,7 @@ export interface BaseQuestion {
 export interface TextQuestion extends BaseQuestion {
   type: 'text'
   inputType?: 'text' | 'email' | 'number'
-  format?: 'gpa' | 'sat' | 'toefl' | 'ielts' | 'percentage'
+  format?: 'gpa' | 'sat' | 'act' | 'toefl' | 'ielts' | 'percentage'
 }
 
 export interface DateQuestion extends BaseQuestion {
@@ -44,7 +44,7 @@ export type Question = TextQuestion | TextareaQuestion | ChipMultiSelectQuestion
 
 export interface ValidationRule {
   type: 'required' | 'email' | 'numeric' | 'minWords' | 'maxWords' | 'minValue' | 'maxValue' | 
-        'satScore' | 'toeflScore' | 'ieltsScore' | 'gpaFormat' | 'percentageFormat' | 'dateRange' | 'minSelections'
+        'satScore' | 'actScore' | 'toeflScore' | 'ieltsScore' | 'gpaFormat' | 'percentageFormat' | 'dateRange' | 'minSelections'
   value?: number | string
   message: string
 }

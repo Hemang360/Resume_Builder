@@ -152,7 +152,7 @@ const ResumePreview: React.FC = () => {
           )}
 
           {/* Academic Achievements Section */}
-          {(processedContent.academics.satScore || processedContent.academics.toeflScore) && (
+          {(processedContent.academics.satScore || processedContent.academics.actScore || processedContent.academics.toeflScore || processedContent.academics.ieltsScore) && (
             <section className="resume-section">
               <h2 className="section-title">Test Scores</h2>
               <div className="section-content">
@@ -164,13 +164,25 @@ const ResumePreview: React.FC = () => {
                       <span className="test-score">{processedContent.academics.satScore}</span>
                     </div>
                   )}
+                  {processedContent.academics.actScore && (
+                    <div className="test-score-item">
+                      <Award className="test-icon" size={16} />
+                      <span className="test-name">ACT:</span>
+                      <span className="test-score">{processedContent.academics.actScore}</span>
+                    </div>
+                  )}
                   {processedContent.academics.toeflScore && (
                     <div className="test-score-item">
                       <Award className="test-icon" size={16} />
-                      <span className="test-name">
-                        {processedContent.academics.toeflScore.includes('.') ? 'IELTS:' : 'TOEFL:'}
-                      </span>
+                      <span className="test-name">TOEFL:</span>
                       <span className="test-score">{processedContent.academics.toeflScore}</span>
+                    </div>
+                  )}
+                  {processedContent.academics.ieltsScore && (
+                    <div className="test-score-item">
+                      <Award className="test-icon" size={16} />
+                      <span className="test-name">IELTS:</span>
+                      <span className="test-score">{processedContent.academics.ieltsScore}</span>
                     </div>
                   )}
                 </div>
