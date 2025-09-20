@@ -1,17 +1,20 @@
-import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react'
-import { Resume, ResumeContent, ResumeState } from '@/types/resume'
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, useState } from 'react'
+import { Resume, ResumeContent, ResumeState, PendingEdit, LocalStorageData, DraftDialogData } from '@/types/resume'
 import { useAutosave } from '@/hooks/useAutosave'
 
 // Action types for reducer
 type ResumeAction =
   | { type: 'SET_RESUME'; payload: Resume }
-  | { type: 'SET_FIELD'; payload: { path: string; value: unknown } }
+  | { type: 'SET_FIELD'; payload: { path: string; value: any } }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_SAVING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | undefined }
   | { type: 'SET_LAST_SAVED'; payload: Date }
   | { type: 'SET_UNSAVED_CHANGES'; payload: boolean }
+  | { type: 'SET_PENDING_DRAFT'; payload: boolean }
+  | { type: 'SET_SHOW_DRAFT_DIALOG'; payload: boolean }
   | { type: 'UNDO' }
+  | { type: 'APPLY_PENDING_EDITS'; payload: PendingEdit[] }
 
 interface ResumeContextType {
   // State
@@ -21,13 +24,20 @@ interface ResumeContextType {
   lastSaved?: Date
   error?: string
   hasUnsavedChanges: boolean
+  hasPendingDraft: boolean
+  showDraftDialog: boolean
   
   // Actions
-  setField: (path: string, value: unknown) => void
+  setField: (path: string, value: any) => void
   createResume: () => Promise<void>
   saveResume: () => Promise<void>
   undo: () => void
   exportToPDF: () => Promise<void>
+  
+  // Draft management
+  restoreDraft: () => void
+  discardDraft: () => void
+  getDraftPreview: () => DraftDialogData | null
   
   // Utility
   canUndo: boolean
@@ -35,8 +45,125 @@ interface ResumeContextType {
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined)
 
+// localStorage keys
+const STORAGE_KEYS = {
+  RESUME_DRAFT: 'resume_draft_',
+  HISTORY: 'resume_history_',
+  PENDING_EDITS: 'resume_pending_edits_',
+  LAST_SAVED: 'resume_last_saved_',
+} as const
+
+// Storage utility class
+class ResumeStorage {
+  private static getStorageKey(baseKey: string, resumeId?: string): string {
+    return resumeId ? `${baseKey}${resumeId}` : `${baseKey}current`
+  }
+
+  static savePendingEdits(resumeId: string | undefined, edits: PendingEdit[]): void {
+    try {
+      const key = this.getStorageKey(STORAGE_KEYS.PENDING_EDITS, resumeId)
+      const data: LocalStorageData = {
+        resumeId,
+        pendingEdits: edits,
+        historyStack: [],
+        historyIndex: -1,
+        lastModified: Date.now(),
+        version: 1
+      }
+      localStorage.setItem(key, JSON.stringify(data))
+    } catch (error) {
+      console.warn('Failed to save pending edits to localStorage:', error)
+    }
+  }
+
+  static loadPendingEdits(resumeId?: string): PendingEdit[] {
+    try {
+      const key = this.getStorageKey(STORAGE_KEYS.PENDING_EDITS, resumeId)
+      const stored = localStorage.getItem(key)
+      if (!stored) return []
+
+      const data: LocalStorageData = JSON.parse(stored)
+      
+      // Check if data is too old (older than 7 days)
+      const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+      if (data.lastModified < weekAgo) {
+        this.clearPendingEdits(resumeId)
+        return []
+      }
+
+      return data.pendingEdits || []
+    } catch (error) {
+      console.warn('Failed to load pending edits from localStorage:', error)
+      return []
+    }
+  }
+
+  static saveHistory(resumeId: string | undefined, historyStack: Resume[], historyIndex: number): void {
+    try {
+      const key = this.getStorageKey(STORAGE_KEYS.HISTORY, resumeId)
+      const data = {
+        historyStack: historyStack.slice(-20), // Keep only last 20 entries
+        historyIndex: Math.min(historyIndex, 19),
+        lastModified: Date.now(),
+        version: 1
+      }
+      localStorage.setItem(key, JSON.stringify(data))
+    } catch (error) {
+      console.warn('Failed to save history to localStorage:', error)
+    }
+  }
+
+  static loadHistory(resumeId?: string): { historyStack: Resume[], historyIndex: number } {
+    try {
+      const key = this.getStorageKey(STORAGE_KEYS.HISTORY, resumeId)
+      const stored = localStorage.getItem(key)
+      if (!stored) return { historyStack: [], historyIndex: -1 }
+
+      const data = JSON.parse(stored)
+      
+      // Check if data is too old (older than 7 days)
+      const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+      if (data.lastModified < weekAgo) {
+        this.clearHistory(resumeId)
+        return { historyStack: [], historyIndex: -1 }
+      }
+
+      return {
+        historyStack: data.historyStack || [],
+        historyIndex: data.historyIndex || -1
+      }
+    } catch (error) {
+      console.warn('Failed to load history from localStorage:', error)
+      return { historyStack: [], historyIndex: -1 }
+    }
+  }
+
+  static clearPendingEdits(resumeId?: string): void {
+    try {
+      const key = this.getStorageKey(STORAGE_KEYS.PENDING_EDITS, resumeId)
+      localStorage.removeItem(key)
+    } catch (error) {
+      console.warn('Failed to clear pending edits:', error)
+    }
+  }
+
+  static clearHistory(resumeId?: string): void {
+    try {
+      const key = this.getStorageKey(STORAGE_KEYS.HISTORY, resumeId)
+      localStorage.removeItem(key)
+    } catch (error) {
+      console.warn('Failed to clear history:', error)
+    }
+  }
+
+  static clearAll(resumeId?: string): void {
+    this.clearPendingEdits(resumeId)
+    this.clearHistory(resumeId)
+  }
+}
+
 // Helper function to set nested object values using dot notation
-function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
+function setNestedValue(obj: any, path: string, value: any): any {
   const keys = path.split('.')
   const result = { ...obj }
   let current = result
@@ -48,10 +175,45 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
     } else {
       current[key] = { ...current[key] }
     }
-    current = current[key] as Record<string, unknown>
+    current = current[key]
   }
 
   current[keys[keys.length - 1]] = value
+  return result
+}
+
+// Safe merge algorithm for resume content
+function safeMergeContent(base: ResumeContent, changes: ResumeContent): ResumeContent {
+  const result = { ...base }
+
+  for (const [key, value] of Object.entries(changes)) {
+    if (key in result && typeof result[key as keyof ResumeContent] === 'object' && 
+        typeof value === 'object' && !Array.isArray(value) && value !== null) {
+      // Deep merge for objects (like personalInfo, academics)
+      result[key as keyof ResumeContent] = {
+        ...(result[key as keyof ResumeContent] as object),
+        ...(value as object)
+      } as any
+    } else {
+      // Replace for arrays, primitives, and null values
+      result[key as keyof ResumeContent] = value as any
+    }
+  }
+
+  return result
+}
+
+// Apply pending edits to resume content
+function applyPendingEdits(content: ResumeContent, edits: PendingEdit[]): ResumeContent {
+  let result = { ...content }
+  
+  // Sort edits by timestamp to apply them in order
+  const sortedEdits = [...edits].sort((a, b) => a.timestamp - b.timestamp)
+  
+  for (const edit of sortedEdits) {
+    result = setNestedValue(result, edit.path, edit.value)
+  }
+  
   return result
 }
 
@@ -59,6 +221,8 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
 const initialResumeContent: ResumeContent = {
   personalInfo: {
     name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     address: ''
@@ -70,7 +234,11 @@ const initialResumeContent: ResumeContent = {
   languages: [],
   certifications: [],
   projects: [],
-  references: []
+  references: [],
+  essays: {},
+  academics: {},
+  extracurriculars: [],
+  careerInterests: []
 }
 
 const initialState: ResumeState = {
@@ -79,7 +247,9 @@ const initialState: ResumeState = {
   },
   isLoading: false,
   isSaving: false,
-  hasUnsavedChanges: false
+  hasUnsavedChanges: false,
+  hasPendingDraft: false,
+  showDraftDialog: false
 }
 
 // Reducer function
@@ -127,8 +297,26 @@ function resumeReducer(state: ResumeState, action: ResumeAction): ResumeState {
     case 'SET_UNSAVED_CHANGES':
       return { ...state, hasUnsavedChanges: action.payload }
 
+    case 'SET_PENDING_DRAFT':
+      return { ...state, hasPendingDraft: action.payload }
+
+    case 'SET_SHOW_DRAFT_DIALOG':
+      return { ...state, showDraftDialog: action.payload }
+
+    case 'APPLY_PENDING_EDITS': {
+      const updatedContent = applyPendingEdits(state.resume.content, action.payload)
+      return {
+        ...state,
+        resume: {
+          ...state.resume,
+          content: updatedContent
+        },
+        hasUnsavedChanges: true,
+        hasPendingDraft: false
+      }
+    }
+
     case 'UNDO':
-      // Undo logic will be handled by the history stack
       return state
 
     default:
@@ -151,7 +339,20 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
   const historyStack = useRef<Resume[]>([])
   const historyIndex = useRef<number>(-1)
   
-  // Push to history stack
+  // Pending edits for localStorage persistence
+  const pendingEdits = useRef<PendingEdit[]>([])
+  
+  // Draft dialog state
+  const [draftDialogData, setDraftDialogData] = useState<DraftDialogData | null>(null)
+
+  // Load history from localStorage
+  useEffect(() => {
+    const { historyStack: savedHistory, historyIndex: savedIndex } = ResumeStorage.loadHistory(resumeId)
+    historyStack.current = savedHistory
+    historyIndex.current = savedIndex
+  }, [resumeId])
+
+  // Push to history stack and persist
   const pushToHistory = useCallback((resume: Resume) => {
     // Remove any entries after current index (when undoing and then making changes)
     historyStack.current = historyStack.current.slice(0, historyIndex.current + 1)
@@ -165,16 +366,23 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     } else {
       historyIndex.current++
     }
-  }, [])
+
+    // Persist to localStorage
+    ResumeStorage.saveHistory(resumeId, historyStack.current, historyIndex.current)
+  }, [resumeId])
 
   // Autosave hook
-  const { saveToServer } = useAutosave({
+  const { saveToServer, queueRequest } = useAutosave({
     resumeId: state.resume.id,
     onSaveStart: () => dispatch({ type: 'SET_SAVING', payload: true }),
     onSaveComplete: (savedResume?: Resume) => {
       dispatch({ type: 'SET_SAVING', payload: false })
       if (savedResume) {
         dispatch({ type: 'SET_LAST_SAVED', payload: new Date() })
+        // Clear pending edits on successful save
+        pendingEdits.current = []
+        ResumeStorage.clearPendingEdits(resumeId)
+        
         // Update resume ID if it was created
         if (!state.resume.id && savedResume.id) {
           dispatch({ type: 'SET_RESUME', payload: savedResume })
@@ -187,10 +395,20 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     }
   })
 
-  // Set field with automatic history tracking and autosave
-  const setField = useCallback((path: string, value: unknown) => {
+  // Set field with automatic history tracking, autosave, and localStorage persistence
+  const setField = useCallback((path: string, value: any) => {
     // Push current state to history before making changes
     pushToHistory(state.resume)
+    
+    // Add to pending edits
+    const edit: PendingEdit = {
+      path,
+      value,
+      timestamp: Date.now()
+    }
+    
+    pendingEdits.current.push(edit)
+    ResumeStorage.savePendingEdits(resumeId, pendingEdits.current)
     
     // Update state
     dispatch({ type: 'SET_FIELD', payload: { path, value } })
@@ -203,7 +421,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     }
     
     saveToServer(updatedResume)
-  }, [state.resume, pushToHistory, saveToServer])
+  }, [state.resume, pushToHistory, saveToServer, resumeId])
 
   // Create new resume
   const createResume = useCallback(async () => {
@@ -211,7 +429,6 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     dispatch({ type: 'SET_ERROR', payload: undefined })
     
     try {
-      // Change this URL to match your backend
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
       
       const response = await fetch(`${API_BASE_URL}/api/resumes/`, {
@@ -232,9 +449,11 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
       dispatch({ type: 'SET_RESUME', payload: newResume })
       dispatch({ type: 'SET_LAST_SAVED', payload: new Date() })
       
-      // Clear history when creating new resume
+      // Clear history and pending edits when creating new resume
       historyStack.current = []
       historyIndex.current = -1
+      pendingEdits.current = []
+      ResumeStorage.clearAll(newResume.id)
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create resume'
@@ -267,65 +486,95 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
       const previousResume = historyStack.current[historyIndex.current]
       dispatch({ type: 'SET_RESUME', payload: previousResume })
       
+      // Update localStorage
+      ResumeStorage.saveHistory(resumeId, historyStack.current, historyIndex.current)
+      
       // Trigger autosave with previous state
       saveToServer(previousResume)
     }
-  }, [saveToServer])
+  }, [saveToServer, resumeId])
 
   // Export to PDF
   const exportToPDF = useCallback(async () => {
-  try {
-    if (!state.resume.id) {
-      throw new Error('Resume must be saved before exporting')
+    try {
+      if (!state.resume.id) {
+        throw new Error('Resume must be saved before exporting')
+      }
+
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      
+      const response = await fetch(`${API_BASE_URL}/api/resumes/${state.resume.id}/export_pdf/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate PDF: ${response.statusText}`)
+      }
+
+      // Handle PDF download
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `resume-${state.resume.id}.pdf`
+      
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to export PDF'
+      dispatch({ type: 'SET_ERROR', payload: errorMessage })
+      console.error('Error exporting PDF:', error)
     }
+  }, [state.resume])
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    
-    const response = await fetch(`${API_BASE_URL}/api/resumes/${state.resume.id}/export_pdf/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+  // Draft management functions
+  const getDraftPreview = useCallback((): DraftDialogData | null => {
+    return draftDialogData
+  }, [draftDialogData])
 
-    if (!response.ok) {
-      throw new Error(`Failed to generate PDF: ${response.statusText}`)
+  const restoreDraft = useCallback(() => {
+    if (draftDialogData) {
+      // Apply the merged content
+      dispatch({ type: 'SET_RESUME', payload: { 
+        ...state.resume, 
+        content: draftDialogData.mergedContent 
+      }})
+      dispatch({ type: 'SET_UNSAVED_CHANGES', payload: true })
+      dispatch({ type: 'SET_SHOW_DRAFT_DIALOG', payload: false })
+      
+      // Clear the dialog data
+      setDraftDialogData(null)
     }
+  }, [draftDialogData, state.resume])
 
-    // Handle PDF download
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    
-    // Get filename from Content-Disposition header or use default
-    const contentDisposition = response.headers.get('Content-Disposition')
-    const filename = contentDisposition 
-      ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
-      : `resume-${state.resume.id}.pdf`
-    
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to export PDF'
-    dispatch({ type: 'SET_ERROR', payload: errorMessage })
-    console.error('Error exporting PDF:', error)
-  }
-}, [state.resume])
+  const discardDraft = useCallback(() => {
+    // Clear pending edits and close dialog
+    pendingEdits.current = []
+    ResumeStorage.clearPendingEdits(resumeId)
+    dispatch({ type: 'SET_PENDING_DRAFT', payload: false })
+    dispatch({ type: 'SET_SHOW_DRAFT_DIALOG', payload: false })
+    setDraftDialogData(null)
+  }, [resumeId])
 
-  // Load existing resume on mount
+  // Load existing resume and check for pending drafts
   useEffect(() => {
     if (resumeId) {
       const loadResume = async () => {
         dispatch({ type: 'SET_LOADING', payload: true })
         
         try {
-          // Change this URL to match your backend
-          const API_BASE_URL = 'http://localhost:8000'
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
           
           const response = await fetch(`${API_BASE_URL}/api/resumes/${resumeId}/`)
           
@@ -333,8 +582,29 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
             throw new Error(`Failed to load resume: ${response.statusText}`)
           }
 
-          const resume: Resume = await response.json()
-          dispatch({ type: 'SET_RESUME', payload: resume })
+          const serverResume: Resume = await response.json()
+          
+          // Check for pending edits
+          const storedEdits = ResumeStorage.loadPendingEdits(resumeId)
+          
+          if (storedEdits.length > 0) {
+            // Create merged content for preview
+            const mergedContent = applyPendingEdits(serverResume.content, storedEdits)
+            
+            // Set up draft dialog
+            const dialogData: DraftDialogData = {
+              serverResume,
+              localEdits: storedEdits,
+              mergedContent
+            }
+            
+            setDraftDialogData(dialogData)
+            dispatch({ type: 'SET_PENDING_DRAFT', payload: true })
+            dispatch({ type: 'SET_SHOW_DRAFT_DIALOG', payload: true })
+          }
+          
+          // Load the server version first
+          dispatch({ type: 'SET_RESUME', payload: serverResume })
           dispatch({ type: 'SET_LAST_SAVED', payload: new Date() })
           
         } catch (error) {
@@ -347,6 +617,22 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
       }
 
       loadResume()
+    } else {
+      // Check for pending edits without resumeId (new resume)
+      const storedEdits = ResumeStorage.loadPendingEdits()
+      if (storedEdits.length > 0) {
+        const mergedContent = applyPendingEdits(initialResumeContent, storedEdits)
+        
+        const dialogData: DraftDialogData = {
+          serverResume: { content: initialResumeContent },
+          localEdits: storedEdits,
+          mergedContent
+        }
+        
+        setDraftDialogData(dialogData)
+        dispatch({ type: 'SET_PENDING_DRAFT', payload: true })
+        dispatch({ type: 'SET_SHOW_DRAFT_DIALOG', payload: true })
+      }
     }
   }, [resumeId])
 
@@ -359,6 +645,8 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     lastSaved: state.lastSaved,
     error: state.error,
     hasUnsavedChanges: state.hasUnsavedChanges,
+    hasPendingDraft: state.hasPendingDraft,
+    showDraftDialog: state.showDraftDialog,
     
     // Actions
     setField,
@@ -366,6 +654,11 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     saveResume,
     undo,
     exportToPDF,
+    
+    // Draft management
+    restoreDraft,
+    discardDraft,
+    getDraftPreview,
     
     // Utility
     canUndo: historyIndex.current > 0

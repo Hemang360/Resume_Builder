@@ -5,7 +5,6 @@ export interface PersonalInfo {
   email?: string
   phone?: string
   address?: string
-  location?: string
   website?: string
   linkedin?: string
 }
@@ -39,39 +38,7 @@ export interface Skill {
   category?: string
 }
 
-export interface Project {
-  id?: string
-  name?: string
-  title?: string
-  description?: string
-  technologies?: string
-  url?: string
-  startDate?: string
-  endDate?: string
-}
-
-export interface Reference {
-  id?: string
-  name?: string
-  position?: string
-  company?: string
-  email?: string
-  phone?: string
-}
-
-export interface Academics {
-  satScore?: string
-  toeflScore?: string
-  gpa?: string
-}
-
-export interface Essays {
-  leadership?: string
-  personalStatement?: string
-  whyThisSchool?: string
-}
-
-export interface ResumeContent extends Record<string, unknown> {
+export interface ResumeContent {
   personalInfo?: PersonalInfo
   summary?: string
   experience?: Experience[]
@@ -79,10 +46,10 @@ export interface ResumeContent extends Record<string, unknown> {
   skills?: Skill[]
   languages?: string[]
   certifications?: string[]
-  projects?: Project[]
-  references?: Reference[]
-  academics?: Academics
-  essays?: Essays
+  projects?: any[]
+  references?: any[]
+  essays?: Record<string, string>
+  academics?: Record<string, any>
   extracurriculars?: string[]
   careerInterests?: string[]
 }
@@ -101,4 +68,27 @@ export interface ResumeState {
   lastSaved?: Date
   error?: string
   hasUnsavedChanges: boolean
+  hasPendingDraft: boolean
+  showDraftDialog: boolean
+}
+
+export interface PendingEdit {
+  path: string
+  value: any
+  timestamp: number
+}
+
+export interface LocalStorageData {
+  resumeId?: string
+  pendingEdits: PendingEdit[]
+  historyStack: Resume[]
+  historyIndex: number
+  lastModified: number
+  version: number // For schema versioning
+}
+
+export interface DraftDialogData {
+  serverResume: Resume
+  localEdits: PendingEdit[]
+  mergedContent: ResumeContent
 }
