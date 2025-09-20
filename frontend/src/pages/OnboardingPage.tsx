@@ -43,21 +43,23 @@ const OnboardingPage: React.FC = () => {
       if (hasPersonalInfo && hasProgress) {
         // We have both personal info and progress, go directly to questions
         console.log('Going to questions step')
+        const personalInfo = resume.content.personalInfo!
         setUserData({
-          name: resume.content.personalInfo.name,
-          email: resume.content.personalInfo.email,
-          mobile: resume.content.personalInfo.phone?.replace(/^\+\d+\s/, '') || '',
-          countryCode: resume.content.personalInfo.phone?.match(/^\+\d+/)?.[0] || '+1'
+          name: personalInfo.name || '',
+          email: personalInfo.email || '',
+          mobile: personalInfo.phone?.replace(/^\+\d+\s/, '') || '',
+          countryCode: personalInfo.phone?.match(/^\+\d+/)?.[0] || '+1'
         })
         setCurrentStep('questions')
       } else if (hasPersonalInfo) {
         // We have personal info but no progress, go to welcome page
         console.log('Going to welcome step')
+        const personalInfo = resume.content.personalInfo!
         setUserData({
-          name: resume.content.personalInfo.name,
-          email: resume.content.personalInfo.email,
-          mobile: resume.content.personalInfo.phone?.replace(/^\+\d+\s/, '') || '',
-          countryCode: resume.content.personalInfo.phone?.match(/^\+\d+/)?.[0] || '+1'
+          name: personalInfo.name || '',
+          email: personalInfo.email || '',
+          mobile: personalInfo.phone?.replace(/^\+\d+\s/, '') || '',
+          countryCode: personalInfo.phone?.match(/^\+\d+/)?.[0] || '+1'
         })
         setCurrentStep('welcome')
       } else {
