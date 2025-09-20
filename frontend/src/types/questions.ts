@@ -36,7 +36,7 @@ export interface ValidationRule {
 
 export interface QuestionState {
   currentQuestionIndex: number
-  answers: Record<string, any>
+  answers: Record<string, unknown>
   errors: Record<string, string>
   isComplete: boolean
 }

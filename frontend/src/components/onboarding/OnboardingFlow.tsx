@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Question, QuestionState } from '@/types/questions'
+import { Question, QuestionState, TextQuestion as TextQuestionType, TextareaQuestion as TextareaQuestionType, ChipMultiSelectQuestion as ChipMultiSelectQuestionType } from '@/types/questions'
 import { useResumeContext } from '@/contexts/ResumeContext'
 import QuestionWrapper from './QuestionWrapper'
 import TextQuestion from './TextQuestion'
@@ -35,17 +35,21 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   // Get current answer from resume context or local state
   const getCurrentAnswer = useCallback(() => {
     const keys = currentQuestion.jsonPath.split('.')
-    let value: any = resume.content
+    let value: unknown = resume.content
     
     for (const key of keys) {
-      value = value?.[key]
+      if (value && typeof value === 'object' && key in value) {
+        value = (value as Record<string, unknown>)[key]
+      } else {
+        return state.answers[currentQuestion.id] || ''
+      }
     }
     
     return value || state.answers[currentQuestion.id] || ''
   }, [currentQuestion, resume.content, state.answers])
 
   // Validate current answer
-  const validateCurrentAnswer = useCallback((value: any) => {
+  const validateCurrentAnswer = useCallback((value: unknown) => {
     if (!currentQuestion.validation) return null
     
     for (const rule of currentQuestion.validation) {
@@ -57,7 +61,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   }, [currentQuestion])
 
   // Handle answer change
-  const handleAnswerChange = useCallback((value: any) => {
+  const handleAnswerChange = useCallback((value: unknown) => {
     // Update local state
     setState(prev => ({
       ...prev,
@@ -122,21 +126,39 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
   // Render question component based on type
   const renderQuestion = () => {
-    const props = {
-      question: currentQuestion,
-      value: getCurrentAnswer(),
-      onChange: handleAnswerChange,
-      error: state.errors[currentQuestion.id],
-      onEnter: goToNext
-    }
-
+    const currentAnswer = getCurrentAnswer()
+    
     switch (currentQuestion.type) {
       case 'text':
-        return <TextQuestion {...props} />
+        return (
+          <TextQuestion 
+            question={currentQuestion as TextQuestionType}
+            value={typeof currentAnswer === 'string' ? currentAnswer : ''}
+            onChange={handleAnswerChange}
+            error={state.errors[currentQuestion.id]}
+            onEnter={goToNext}
+          />
+        )
       case 'textarea':
-        return <TextareaQuestion {...props} />
+        return (
+          <TextareaQuestion 
+            question={currentQuestion as TextareaQuestionType}
+            value={typeof currentAnswer === 'string' ? currentAnswer : ''}
+            onChange={handleAnswerChange}
+            error={state.errors[currentQuestion.id]}
+            onEnter={goToNext}
+          />
+        )
       case 'chip-multi-select':
-        return <ChipMultiSelectQuestion {...props} />
+        return (
+          <ChipMultiSelectQuestion 
+            question={currentQuestion as ChipMultiSelectQuestionType}
+            value={Array.isArray(currentAnswer) ? currentAnswer : []}
+            onChange={handleAnswerChange}
+            error={state.errors[currentQuestion.id]}
+            onEnter={goToNext}
+          />
+        )
       default:
         return null
     }

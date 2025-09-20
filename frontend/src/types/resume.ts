@@ -1,8 +1,11 @@
 export interface PersonalInfo {
   name?: string
+  firstName?: string
+  lastName?: string
   email?: string
   phone?: string
   address?: string
+  location?: string
   website?: string
   linkedin?: string
 }
@@ -39,8 +42,9 @@ export interface Skill {
 export interface Project {
   id?: string
   name?: string
+  title?: string
   description?: string
-  technologies?: string[]
+  technologies?: string
   url?: string
   startDate?: string
   endDate?: string
@@ -55,6 +59,18 @@ export interface Reference {
   phone?: string
 }
 
+export interface Academics {
+  satScore?: string
+  toeflScore?: string
+  gpa?: string
+}
+
+export interface Essays {
+  leadership?: string
+  personalStatement?: string
+  whyThisSchool?: string
+}
+
 export interface ResumeContent extends Record<string, unknown> {
   personalInfo?: PersonalInfo
   summary?: string
@@ -65,6 +81,10 @@ export interface ResumeContent extends Record<string, unknown> {
   certifications?: string[]
   projects?: Project[]
   references?: Reference[]
+  academics?: Academics
+  essays?: Essays
+  extracurriculars?: string[]
+  careerInterests?: string[]
 }
 
 export interface Resume {

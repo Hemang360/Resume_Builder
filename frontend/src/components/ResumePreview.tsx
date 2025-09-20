@@ -1,128 +1,308 @@
-import React from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Mail, Phone } from 'lucide-react'
+import React, { useRef, useMemo } from 'react'
+import { useReactToPrint } from 'react-to-print'
 import { useResumeContext } from '@/contexts/ResumeContext'
+import { Button } from '@/components/ui/button'
+import { Download, FileText, Mail, Phone, MapPin, Globe, Calendar, Award } from 'lucide-react'
+import './ResumePreview.css'
 
 const ResumePreview: React.FC = () => {
-  const { resume } = useResumeContext()
-  const { personalInfo, summary, experience, skills, education } = resume.content
+  const { resume, isLoading } = useResumeContext()
+  const componentRef = useRef<HTMLDivElement>(null)
 
-  return (
-    <Card className="w-full h-full shadow-lg border-slate-200 dark:border-slate-700">
-      <CardHeader className="pb-0">
-        <div className="text-center space-y-1 mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {personalInfo?.name || 'Your Name'}
-          </h1>
-          <div className="flex items-center justify-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-            {personalInfo?.email && (
-              <div className="flex items-center gap-1">
-                <Mail className="h-4 w-4" />
-                {personalInfo.email}
-              </div>
-            )}
-            {personalInfo?.phone && (
-              <div className="flex items-center gap-1">
-                <Phone className="h-4 w-4" />
-                {personalInfo.phone}
-              </div>
-            )}
+  // Helper function to get full name
+  const getFullName = (content: Record<string, unknown>): string => {
+    const personalInfo = content?.personalInfo as Record<string, unknown> || {}
+    const firstName = personalInfo?.firstName as string || ''
+    const lastName = personalInfo?.lastName as string || ''
+    return `${firstName} ${lastName}`.trim() || 'Resume'
+  }
+
+  // Configure react-to-print
+  const handlePrint = useReactToPrint({
+    content: () => componentRef.current,
+    documentTitle: `${getFullName(resume.content)}-Resume`,
+    onAfterPrint: () => console.log('PDF generation completed'),
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 0.5in;
+      }
+      @media print {
+        body { -webkit-print-color-adjust: exact; }
+      }
+    `
+  })
+
+  // Helper function to format date
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return ''
+    try {
+      return new Date(dateString).getFullYear().toString()
+    } catch {
+      return dateString
+    }
+  }
+
+  // Helper function to calculate word count
+  const getWordCount = (text: string): number => {
+    return text?.trim() ? text.trim().split(/\s+/).length : 0
+  }
+
+  // Memoized content processing for performance
+  const processedContent = useMemo(() => {
+    const content = resume.content || {}
+    
+    return {
+      personalInfo: content.personalInfo || {},
+      education: Array.isArray(content.education) ? content.education : (content.education ? [content.education] : []),
+      skills: Array.isArray(content.skills) ? content.skills : [],
+      extracurriculars: Array.isArray(content.extracurriculars) ? content.extracurriculars : [],
+      projects: Array.isArray(content.projects) ? content.projects : (content.projects ? [content.projects] : []),
+      essays: content.essays || {},
+      academics: content.academics || {},
+      careerInterests: Array.isArray(content.careerInterests) ? content.careerInterests : []
+    }
+  }, [resume.content])
+
+  if (isLoading) {
+    return (
+      <div className="resume-preview-container">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-pulse space-y-4 w-full max-w-md">
+            <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+            <div className="h-4 bg-slate-200 rounded w-5/6"></div>
           </div>
         </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Professional Summary */}
-        {summary && (
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 pb-1 border-b border-slate-200 dark:border-slate-700">
-              Professional Summary
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              {summary}
-            </p>
-          </section>
-        )}
+      </div>
+    )
+  }
 
-        {/* Experience */}
-        {experience && experience.length > 0 && (
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 pb-1 border-b border-slate-200 dark:border-slate-700">
-              Experience
-            </h2>
-            <div className="space-y-4">
-              {experience.map((exp, index) => (
-                <div key={exp.id || index}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-medium text-slate-900 dark:text-slate-100">
-                        {exp.position || 'Position'}
-                      </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {exp.company || 'Company'}
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-500 dark:text-slate-500">
-                      {exp.startDate && exp.endDate ? `${exp.startDate} - ${exp.endDate}` : ''}
-                    </span>
+  return (
+    <div className="resume-preview-container">
+      {/* Download Button */}
+      <div className="download-button-container no-print">
+        <Button
+          onClick={handlePrint}
+          className="flex items-center gap-2 mb-4 shadow-lg"
+          size="lg"
+        >
+          <Download className="w-4 h-4" />
+          Download PDF
+        </Button>
+      </div>
+
+      {/* Resume Content */}
+      <div ref={componentRef} className="resume-content" id="resume-to-print">
+        <article className="resume-document">
+          {/* Header Section */}
+          <header className="resume-header">
+            <div className="name-section">
+              <h1 className="full-name">
+                {getFullName(processedContent)}
+              </h1>
+              
+              <div className="contact-info">
+                {processedContent.personalInfo.email && (
+                  <div className="contact-item">
+                    <Mail className="contact-icon" size={14} />
+                    <span>{processedContent.personalInfo.email}</span>
                   </div>
-                  {exp.description && (
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {exp.description}
-                    </p>
+                )}
+                
+                {processedContent.personalInfo.phone && (
+                  <div className="contact-item">
+                    <Phone className="contact-icon" size={14} />
+                    <span>{processedContent.personalInfo.phone}</span>
+                  </div>
+                )}
+                
+                {processedContent.personalInfo.location && (
+                  <div className="contact-item">
+                    <MapPin className="contact-icon" size={14} />
+                    <span>{processedContent.personalInfo.location}</span>
+                  </div>
+                )}
+                
+                {processedContent.personalInfo.website && (
+                  <div className="contact-item">
+                    <Globe className="contact-icon" size={14} />
+                    <span>{processedContent.personalInfo.website}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Education Section */}
+          {processedContent.education.length > 0 && (
+            <section className="resume-section">
+              <h2 className="section-title">Education</h2>
+               <div className="section-content">
+                 {processedContent.education.map((edu, index) => {
+                   if (!edu) return null
+                   return (
+                     <div key={index} className="education-item">
+                       <div className="education-header">
+                         <div className="education-main">
+                           <h3 className="institution-name">
+                             {edu.institution || 'High School'}
+                           </h3>
+                           {edu.degree && (
+                             <p className="degree">{edu.degree}</p>
+                           )}
+                           {edu.gpa && (
+                             <p className="gpa">
+                               {edu.gpa.includes('%') ? `Grade: ${edu.gpa}` : `GPA: ${edu.gpa}`}
+                             </p>
+                           )}
+                         </div>
+                         <div className="education-dates">
+                           {edu.endDate && (
+                             <span className="graduation-date">
+                               <Calendar className="date-icon" size={12} />
+                               Expected {formatDate(edu.endDate)}
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                       {edu.description && (
+                         <p className="education-description">{edu.description}</p>
+                       )}
+                     </div>
+                   )
+                 })}
+              </div>
+            </section>
+          )}
+
+          {/* Academic Achievements Section */}
+          {(processedContent.academics.satScore || processedContent.academics.toeflScore) && (
+            <section className="resume-section">
+              <h2 className="section-title">Test Scores</h2>
+              <div className="section-content">
+                <div className="test-scores">
+                  {processedContent.academics.satScore && (
+                    <div className="test-score-item">
+                      <Award className="test-icon" size={16} />
+                      <span className="test-name">SAT:</span>
+                      <span className="test-score">{processedContent.academics.satScore}</span>
+                    </div>
+                  )}
+                  {processedContent.academics.toeflScore && (
+                    <div className="test-score-item">
+                      <Award className="test-icon" size={16} />
+                      <span className="test-name">
+                        {processedContent.academics.toeflScore.includes('.') ? 'IELTS:' : 'TOEFL:'}
+                      </span>
+                      <span className="test-score">{processedContent.academics.toeflScore}</span>
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </div>
+            </section>
+          )}
 
-        {/* Skills */}
-        {skills && skills.length > 0 && (
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 pb-1 border-b border-slate-200 dark:border-slate-700">
-              Skills
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill, index) => (
-                <Badge key={skill.id || index} variant="secondary" className="text-xs">
-                  {typeof skill === 'string' ? skill : skill.name || 'Skill'}
-                </Badge>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Education */}
-        {education && education.length > 0 && (
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 pb-1 border-b border-slate-200 dark:border-slate-700">
-              Education
-            </h2>
-            <div className="space-y-3">
-              {education.map((edu, index) => (
-                <div key={edu.id || index}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-slate-900 dark:text-slate-100">
-                        {edu.degree || 'Degree'}
-                      </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {edu.institution || 'Institution'}
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-500 dark:text-slate-500">
-                      {edu.endDate || ''}
+          {/* Leadership Essay Section */}
+          {processedContent.essays.leadership && (
+            <section className="resume-section">
+              <h2 className="section-title">Leadership Experience</h2>
+              <div className="section-content">
+                <div className="essay-content">
+                  <p className="essay-text">{processedContent.essays.leadership}</p>
+                  <div className="essay-meta">
+                    <span className="word-count">
+                      {getWordCount(processedContent.essays.leadership)} words
                     </span>
                   </div>
                 </div>
-              ))}
+              </div>
+            </section>
+          )}
+
+           {/* Projects Section */}
+           {processedContent.projects.length > 0 && processedContent.projects[0]?.title && (
+             <section className="resume-section">
+               <h2 className="section-title">Notable Projects</h2>
+               <div className="section-content">
+                 {processedContent.projects.map((project, index) => {
+                   if (!project) return null
+                   return (
+                     <div key={index} className="project-item">
+                       <h3 className="project-title">{project.title}</h3>
+                       {project.description && (
+                         <p className="project-description">{project.description}</p>
+                       )}
+                       {project.technologies && (
+                         <div className="project-technologies">
+                           <span className="tech-label">Technologies:</span>
+                           <span className="tech-list">{project.technologies}</span>
+                         </div>
+                       )}
+                     </div>
+                   )
+                 })}
+               </div>
+             </section>
+           )}
+
+          {/* Extracurricular Activities Section */}
+          {processedContent.extracurriculars.length > 0 && (
+            <section className="resume-section">
+              <h2 className="section-title">Extracurricular Activities</h2>
+              <div className="section-content">
+                <div className="activities-grid">
+                  {processedContent.extracurriculars.map((activity, index) => (
+                    <div key={index} className="activity-item">
+                      {activity}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Skills Section */}
+          {processedContent.skills.length > 0 && (
+            <section className="resume-section">
+              <h2 className="section-title">Skills</h2>
+              <div className="section-content">
+                 <div className="skills-grid">
+                   {processedContent.skills.map((skill, index) => (
+                     <div key={index} className="skill-item">
+                       {typeof skill === 'string' ? skill : (skill as { name?: string }).name || String(skill)}
+                     </div>
+                   ))}
+                 </div>
+              </div>
+            </section>
+          )}
+
+          {/* Career Interests Section */}
+          {processedContent.careerInterests.length > 0 && (
+            <section className="resume-section">
+              <h2 className="section-title">Career Interests</h2>
+              <div className="section-content">
+                <div className="interests-list">
+                  {processedContent.careerInterests.join(' • ')}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Empty State */}
+          {!getFullName(processedContent) && processedContent.education.length === 0 && (
+            <div className="empty-state">
+              <FileText className="empty-icon" size={48} />
+              <h2 className="empty-title">Your Resume Preview</h2>
+              <p className="empty-description">
+                Start filling out the form to see your resume come to life!
+              </p>
             </div>
-          </section>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </article>
+      </div>
+    </div>
   )
 }
 
