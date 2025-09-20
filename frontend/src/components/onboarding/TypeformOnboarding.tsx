@@ -182,7 +182,7 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
             {currentStepData.id === 'mobile' ? (
               <div className="flex gap-2 w-full">
                 <Select value={data.countryCode} onValueChange={handleCountryCodeChange}>
-                  <SelectTrigger className="w-[100px] h-14 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 text-lg flex-shrink-0">
+                  <SelectTrigger className="w-12 h-14 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 text-sm flex-shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">

@@ -5,6 +5,7 @@ import { WebSocketStatus } from '@/components/WebSocketStatus'
 import { 
   Save, 
   Undo, 
+  Redo,
   Download, 
   Clock, 
   Wifi, 
@@ -31,6 +32,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
     error,
     undo,
     canUndo,
+    redo,
+    canRedo,
     saveResume,
     exportToPDF,
     startOver
@@ -75,12 +78,20 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
       }
     }
 
+    // Ctrl+Y or Cmd+Y for redo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+      e.preventDefault()
+      if (canRedo && !isSaving) {
+        redo()
+      }
+    }
+
     // Ctrl+P or Cmd+P for export (we'll override default print)
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
       e.preventDefault()
       exportToPDF()
     }
-  }, [hasUnsavedChanges, isSaving, saveResume, canUndo, undo, exportToPDF])
+  }, [hasUnsavedChanges, isSaving, saveResume, canUndo, undo, canRedo, redo, exportToPDF])
 
   // Register keyboard shortcuts
   useEffect(() => {
@@ -252,6 +263,22 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
           </kbd>
         </Button>
 
+        {/* Redo Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={redo}
+          disabled={!canRedo || isSaving}
+          className="flex items-center gap-1.5 text-xs"
+          title="Redo last undone change (Ctrl+Y)"
+        >
+          <Redo className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Redo</span>
+          <kbd className="hidden lg:inline-flex items-center gap-1 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+            <span className="text-xs">⌘</span>Y
+          </kbd>
+        </Button>
+
         {/* Save Now Button */}
         <Button
           variant="outline"
@@ -296,6 +323,7 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
         <div className="bg-slate-800 text-white p-2 rounded-lg text-xs opacity-0 hover:opacity-100 transition-opacity">
           <div>⌘S - Save</div>
           <div>⌘Z - Undo</div>
+          <div>⌘Y - Redo</div>
           <div>⌘P - Export</div>
         </div>
       </div>

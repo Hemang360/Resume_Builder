@@ -146,8 +146,8 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Right Half - Resume Preview (60%) */}
-        <div className="w-3/5 bg-white dark:bg-slate-800 flex items-center justify-center p-8">
-          <div ref={resumeRef} className="w-full max-w-[210mm] h-[297mm] bg-white shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="w-3/5 bg-white dark:bg-slate-800 flex items-start justify-center p-8 overflow-y-auto">
+          <div ref={resumeRef} className="w-full max-w-[210mm] bg-white shadow-lg border border-slate-200 dark:border-slate-700">
             <ResumePreview />
           </div>
         </div>

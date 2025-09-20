@@ -46,6 +46,8 @@ export const useAutosave = ({
     
     const method = isNew ? 'POST' : 'PATCH'
     
+    console.log(`Saving resume: ${method} ${url}`)
+    
     // Include If-Unmodified-Since header for conflict detection on updates
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

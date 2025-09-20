@@ -53,6 +53,8 @@ interface ResumeContextType {
   
   // Utility
   canUndo: boolean
+  canRedo: boolean
+  redo: () => void
 }
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined)
@@ -593,6 +595,21 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     }
   }, [saveToServer, resumeId])
 
+  // Redo functionality
+  const redo = useCallback(() => {
+    if (historyIndex.current < historyStack.current.length - 1) {
+      historyIndex.current++
+      const nextResume = historyStack.current[historyIndex.current]
+      dispatch({ type: 'SET_RESUME', payload: nextResume })
+      
+      // Update localStorage
+      ResumeStorage.saveHistory(resumeId, historyStack.current, historyIndex.current)
+      
+      // Trigger autosave with next state
+      saveToServer(nextResume)
+    }
+  }, [saveToServer, resumeId])
+
   // Export to PDF
   const exportToPDF = useCallback(async () => {
     try {
@@ -699,10 +716,13 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
         
         try {
           const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
+          const url = `${API_BASE_URL}/api/resumes/${resumeId}/`
           
-          const response = await fetch(`${API_BASE_URL}/api/resumes/${resumeId}/`)
+          console.log('Loading resume from:', url)
+          const response = await fetch(url)
           
           if (!response.ok) {
+            console.error(`Failed to load resume: ${response.status} ${response.statusText}`)
             throw new Error(`Failed to load resume: ${response.statusText}`)
           }
 
@@ -838,7 +858,9 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     checkWebSocketConnection,
     
     // Utility
-    canUndo: historyIndex.current > 0
+    canUndo: historyIndex.current > 0,
+    canRedo: historyIndex.current < historyStack.current.length - 1,
+    redo
   }
 
   return (
