@@ -1,9 +1,12 @@
 asgiref
 attrs
+channels
+channels-redis
 Django
 django-cors-headers
 djangorestframework
 drf-spectacular
+dj-database-url
 inflection
 jsonschema
 jsonschema-specifications
