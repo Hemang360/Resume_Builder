@@ -13,6 +13,8 @@ django_asgi_app = get_asgi_application()
 # Import WebSocket URL patterns after Django is configured
 from resumes.routing import websocket_urlpatterns
 
+print(f"WebSocket URL patterns: {websocket_urlpatterns}")
+
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
