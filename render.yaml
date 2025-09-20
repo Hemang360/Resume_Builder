@@ -1,10 +1,10 @@
-services:
+  services:
   - type: web
     name: resume-builder-backend
     env: python
     plan: free
     buildCommand: cd backend && pip install -r requirements.txt && python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput
-    startCommand: cd backend && uvicorn resume_api.asgi:application --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && gunicorn resume_api.asgi:application -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: SECRET_KEY
         generateValue: true

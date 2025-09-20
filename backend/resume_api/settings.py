@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-in-production-123456789')
 
-DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,testserver,resume-builder-backend-7wxd.onrender.com').split(',')
 
@@ -104,6 +104,17 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Security settings for production
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# Add trusted origins for CSRF
+CSRF_TRUSTED_ORIGINS = [
+    'https://resume-builder-backend-7wxd.onrender.com',
+    'https://resume-builder-blush-pi-13.vercel.app',
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
