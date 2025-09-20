@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, CheckCircle, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '../lib/utils'
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate()

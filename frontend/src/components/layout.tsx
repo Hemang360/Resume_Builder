@@ -1,6 +1,6 @@
 import React from 'react'
 import ControlsBar from './ControlsBar'
-import { cn } from '@/lib/utils'
+import { cn } from '../lib/utils'
 
 interface LayoutProps {
   children: React.ReactNode

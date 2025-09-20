@@ -9,7 +9,7 @@ import DateQuestion from './DateQuestion'
 import { validateAnswer } from '@/utils/validation'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '../../lib/utils'
 
 interface OnboardingFlowProps {
   questions: Question[]
