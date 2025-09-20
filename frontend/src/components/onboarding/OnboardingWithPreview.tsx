@@ -272,16 +272,17 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col">
       {/* Controls Bar - Show starting from SAT question */}
       {shouldShowControlsBar() && <ControlsBar />}
-      <div className="w-full h-full flex">
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Side - Question (40%) */}
         <div className="w-2/5 flex items-start justify-start">
           {/* Question Card */}
           <div className={cn(
             "w-full h-full bg-white dark:bg-slate-800 rounded-r-2xl shadow-xl border-r border-slate-200 dark:border-slate-700 p-8 transition-all duration-300 ease-in-out",
-            isAnimating ? "opacity-0 transform translate-x-4" : "opacity-100 transform translate-x-0"
+            isAnimating ? "opacity-0 transform translate-x-4" : "opacity-100 transform translate-x-0",
+            currentQuestion.type === 'textarea' ? "overflow-y-auto" : "overflow-hidden"
           )}>
                 {/* Question Content */}
                 <div className="min-h-[300px] transition-all duration-300 ease-in-out">
@@ -292,62 +293,66 @@ const OnboardingWithPreview: React.FC<OnboardingWithPreviewProps> = ({
                 {renderTooltipInfo()}
 
                 {/* Navigation */}
-                <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-700">
-                  <Button
-                    variant="ghost"
-                    size="lg"
-                    onClick={goToPrevious}
-                    disabled={isAnimating}
-                    className={cn(
-                      "flex items-center gap-3 px-6 py-4 text-lg transition-all duration-200",
-                      isAnimating
-                        ? "opacity-50 cursor-not-allowed text-slate-400 dark:text-slate-600" 
-                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:scale-105"
-                    )}
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                    {isFirstQuestion ? 'Back' : 'Previous'}
-                  </Button>
+                <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
+                  {/* Buttons Row */}
+                  <div className="flex items-center justify-between mb-4">
+                    <Button
+                      variant="ghost"
+                      size="lg"
+                      onClick={goToPrevious}
+                      disabled={isAnimating}
+                      className={cn(
+                        "flex items-center gap-3 px-6 py-4 text-lg transition-all duration-200",
+                        isAnimating
+                          ? "opacity-50 cursor-not-allowed text-slate-400 dark:text-slate-600" 
+                          : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:scale-105"
+                      )}
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                      {isFirstQuestion ? 'Back' : 'Previous'}
+                    </Button>
 
-                  <div className="text-center space-y-4">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Press <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs">Enter</kbd> to continue
-                    </p>
-                    
                     {/* Download PDF Button */}
                     <Button
                       onClick={handlePrint}
                       variant="outline"
-                      className="flex items-center gap-2 w-full"
+                      className="flex items-center gap-2 px-6 py-4 text-lg transition-all duration-200 hover:scale-105"
                     >
                       <Download className="w-4 h-4" />
                       Download PDF
                     </Button>
+
+                    <Button
+                      size="lg"
+                      onClick={goToNext}
+                      className={cn(
+                        "flex items-center gap-3 px-8 py-4 text-lg transition-all duration-200",
+                        isAnimating
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:scale-105"
+                      )}
+                      disabled={isAnimating}
+                    >
+                      {isAnimating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          {isLastQuestion ? 'Complete' : 'Next'}
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </Button>
                   </div>
 
-                  <Button
-                    size="lg"
-                    onClick={goToNext}
-                    className={cn(
-                      "flex items-center gap-3 px-8 py-4 text-lg transition-all duration-200",
-                      isAnimating
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:scale-105"
-                    )}
-                    disabled={isAnimating}
-                  >
-                    {isAnimating ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        {isLastQuestion ? 'Complete' : 'Next'}
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </Button>
+                  {/* Instructions Text */}
+                  <div className="text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Press <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs">Enter</kbd> to continue
+                    </p>
+                  </div>
                 </div>
               </div>
         </div>
