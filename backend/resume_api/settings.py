@@ -38,6 +38,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Disable CSRF for API endpoints
+CSRF_TRUSTED_ORIGINS = [
+    'https://resume-builder-backend-7wxd.onrender.com',
+    'https://resume-builder-blush-pi-13.vercel.app',
+]
+
+# For API-only backend, we can disable CSRF for API views
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
+
 ROOT_URLCONF = 'resume_api.urls'
 
 TEMPLATES = [
@@ -110,11 +120,6 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Add trusted origins for CSRF
-CSRF_TRUSTED_ORIGINS = [
-    'https://resume-builder-backend-7wxd.onrender.com',
-    'https://resume-builder-blush-pi-13.vercel.app',
-]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -126,9 +131,15 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
 }
 
 # CORS settings for local development and production
