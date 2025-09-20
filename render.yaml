@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: cd backend && pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: cd backend && daphne -b 0.0.0.0 -p $PORT resume_api.asgi:application
+    startCommand: cd backend && python -m daphne -b 0.0.0.0 -p $PORT resume_api.asgi:application
     envVars:
       - key: SECRET_KEY
         generateValue: true
