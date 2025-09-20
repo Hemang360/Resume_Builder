@@ -9,7 +9,7 @@ interface ResumeRouterProps {
 const ResumeRouter: React.FC<ResumeRouterProps> = ({ children }) => {
   const navigate = useNavigate()
   const { resume, isLoading } = useResumeContext()
-  const hasProcessedRef = useRef(false)
+  const hasProcessedRef = useRef<string | null>(null)
 
   useEffect(() => {
     // Don't redirect while loading
