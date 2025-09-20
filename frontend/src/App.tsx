@@ -1,5 +1,4 @@
 import { Outlet } from '@tanstack/react-router'
-import Layout from './components/layout'
 import { ResumeProvider } from './contexts/ResumeContext'
 
 function App() {
@@ -8,9 +7,7 @@ function App() {
 
   return (
     <ResumeProvider resumeId={resumeId}>
-      <Layout>
-        <Outlet />
-      </Layout>
+      <Outlet />
     </ResumeProvider>
   )
 }
