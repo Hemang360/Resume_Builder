@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: resume-builder-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: daphne -b 0.0.0.0 -p $PORT resume_api.asgi:application
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: resume-builder-backend.onrender.com,localhost,127.0.0.1
+      - key: DATABASE_URL
+        fromDatabase:
+          name: resume-builder-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: resume-builder-redis
+          property: connectionString
+      - key: WEBSOCKET_URL
+        value: wss://resume-builder-backend.onrender.com/ws/
+
+  - type: pserv
+    name: resume-builder-db
+    env: postgresql
+    plan: free
+
+  - type: redis
+    name: resume-builder-redis
+    plan: free
