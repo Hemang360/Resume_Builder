@@ -41,7 +41,9 @@ ROOT_URLCONF = 'resume_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -131,7 +133,7 @@ DATABASES = {
 #     }
 # }
 # will setup pgs later
-
+WEASYPRINT_BASEURL = '/'
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Resume Builder API',

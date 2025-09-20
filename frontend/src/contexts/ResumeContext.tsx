@@ -274,49 +274,48 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
 
   // Export to PDF
   const exportToPDF = useCallback(async () => {
-    try {
-      // This would integrate with a PDF generation service
-      // For now, we'll use a placeholder implementation
-      
-      // Option 1: Use browser's print functionality
-      if (typeof window !== 'undefined') {
-        window.print()
-        return
-      }
-      
-      // Option 2: Send to backend for PDF generation
-      // Change this URL to match your backend PDF endpoint
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-      
-      const response = await fetch(`${API_BASE_URL}/api/resumes/${state.resume.id}/pdf/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(state.resume),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF')
-      }
-
-      // Handle PDF download
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `resume-${state.resume.id || 'draft'}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to export PDF'
-      dispatch({ type: 'SET_ERROR', payload: errorMessage })
-      console.error('Error exporting PDF:', error)
+  try {
+    if (!state.resume.id) {
+      throw new Error('Resume must be saved before exporting')
     }
-  }, [state.resume])
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    
+    const response = await fetch(`${API_BASE_URL}/api/resumes/${state.resume.id}/export_pdf/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate PDF: ${response.statusText}`)
+    }
+
+    // Handle PDF download
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    
+    // Get filename from Content-Disposition header or use default
+    const contentDisposition = response.headers.get('Content-Disposition')
+    const filename = contentDisposition 
+      ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+      : `resume-${state.resume.id}.pdf`
+    
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to export PDF'
+    dispatch({ type: 'SET_ERROR', payload: errorMessage })
+    console.error('Error exporting PDF:', error)
+  }
+}, [state.resume])
 
   // Load existing resume on mount
   useEffect(() => {

@@ -1,99 +1,17 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
+from rest_framework.decorators import action
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.conf import settings
+from weasyprint import HTML, CSS
+from weasyprint.text.fonts import FontConfiguration
+import tempfile
+import os
 from .models import Resume
-from .serializer import ResumeSerializer
+from .serializers import ResumeSerializer
 
-def deep_merge_dicts(dict1, dict2):
-    """
-    Deep merge two dictionaries, with dict2 values taking precedence.
-    """
-    result = dict1.copy()
-    for key, value in dict2.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = deep_merge_dicts(result[key], value)
-        else:
-            result[key] = value
-    return result
-
-@extend_schema_view(
-    list=extend_schema(
-        summary="List all resumes",
-        description="Retrieve a list of all resumes in the system.",
-        tags=["Resumes"]
-    ),
-    create=extend_schema(
-        summary="Create a new resume",
-        description="Create a new resume with the provided content.",
-        tags=["Resumes"],
-        examples=[
-            OpenApiExample(
-                'Basic Resume Example',
-                description='A simple resume with personal info and experience',
-                value={
-                    "content": {
-                        "personalInfo": {
-                            "name": "John Doe",
-                            "email": "john.doe@example.com",
-                            "phone": "+1-555-0123",
-                            "address": "123 Main St, City, State 12345"
-                        },
-                        "experience": [
-                            {
-                                "company": "Tech Corp",
-                                "position": "Software Engineer",
-                                "duration": "2020-2023",
-                                "description": "Developed web applications using Python and JavaScript"
-                            }
-                        ],
-                        "skills": ["Python", "JavaScript", "React", "Django"],
-                        "education": [
-                            {
-                                "institution": "University of Technology",
-                                "degree": "Bachelor of Computer Science",
-                                "year": "2019"
-                            }
-                        ]
-                    }
-                },
-                request_only=True,
-            ),
-        ]
-    ),
-    retrieve=extend_schema(
-        summary="Retrieve a specific resume",
-        description="Get a specific resume by its UUID.",
-        tags=["Resumes"]
-    ),
-    partial_update=extend_schema(
-        summary="Partially update a resume",
-        description="Update specific fields of a resume. The content will be merged with existing data.",
-        tags=["Resumes"],
-        examples=[
-            OpenApiExample(
-                'Partial Update Example',
-                description='Update only specific sections of the resume',
-                value={
-                    "content": {
-                        "personalInfo": {
-                            "name": "John Smith",
-                            "email": "john.smith@example.com"
-                        },
-                        "skills": ["Python", "JavaScript", "React", "Django", "PostgreSQL"]
-                    }
-                },
-                request_only=True,
-            ),
-        ]
-    ),
-)
 class ResumeViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing resumes.
-    
-    Provides endpoints for creating, retrieving, listing, and partially updating resumes.
-    Each resume contains flexible JSON content that can accommodate any resume structure.
-    """
     queryset = Resume.objects.all()
     serializer_class = ResumeSerializer
     
@@ -114,25 +32,281 @@ class ResumeViewSet(viewsets.ModelViewSet):
     
     def partial_update(self, request, *args, **kwargs):
         """Partially update a resume"""
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        
-        # Handle content merging for partial updates
-        if 'content' in request.data:
-            existing_content = instance.content or {}
-            new_content = request.data.get('content', {})
-            
-            # Deep merge the content dictionaries
-            if isinstance(existing_content, dict) and isinstance(new_content, dict):
-                merged_content = deep_merge_dicts(existing_content, new_content)
-                # Update the serializer's validated_data
-                serializer.validated_data['content'] = merged_content
-        
-        self.perform_update(serializer)
-        return Response(serializer.data)
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
     
-    @extend_schema(exclude=True)
+    @action(detail=True, methods=['post'], url_path='export_pdf')
+    def export_pdf(self, request, pk=None):
+        """
+        Export resume as PDF
+        """
+        try:
+            # Get the resume
+            resume = self.get_object()
+            
+            # Prepare context for template
+            context = self.prepare_resume_context(resume)
+            
+            # Render HTML template
+            html_string = render_to_string('resumes/resume_pdf.html', context)
+            
+            # Generate PDF
+            pdf_bytes = self.generate_pdf(html_string)
+            
+            # Create response
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            
+            # Set filename based on resume content
+            full_name = self.get_full_name(resume.content)
+            filename = f"{full_name.replace(' ', '_')}_Resume.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Length'] = len(pdf_bytes)
+            
+            return response
+            
+        except Resume.DoesNotExist:
+            return Response(
+                {'error': 'Resume not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'PDF generation failed: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def prepare_resume_context(self, resume):
+        """
+        Prepare resume data for template rendering
+        """
+        content = resume.content or {}
+        
+        # Extract and structure data
+        personal_info = content.get('personalInfo', {})
+        education = content.get('education', [])
+        if not isinstance(education, list):
+            education = [education] if education else []
+            
+        skills = content.get('skills', [])
+        if not isinstance(skills, list):
+            skills = []
+            
+        extracurriculars = content.get('extracurriculars', [])
+        if not isinstance(extracurriculars, list):
+            extracurriculars = []
+            
+        projects = content.get('projects', [])
+        if not isinstance(projects, list):
+            projects = [projects] if projects else []
+            
+        essays = content.get('essays', {})
+        academics = content.get('academics', {})
+        career_interests = content.get('careerInterests', [])
+        if not isinstance(career_interests, list):
+            career_interests = []
+        
+        return {
+            'resume': resume,
+            'personal_info': personal_info,
+            'education': education,
+            'skills': skills,
+            'extracurriculars': extracurriculars,
+            'projects': projects,
+            'essays': essays,
+            'academics': academics,
+            'career_interests': career_interests,
+            'full_name': self.get_full_name(content),
+            'current_year': 2025,
+        }
+    
+    def get_full_name(self, content):
+        """Extract full name from resume content"""
+        personal_info = content.get('personalInfo', {}) if content else {}
+        first_name = personal_info.get('firstName', '')
+        last_name = personal_info.get('lastName', '')
+        return f"{first_name} {last_name}".strip() or "Resume"
+    
+    def generate_pdf(self, html_string):
+        """
+        Generate PDF from HTML string using WeasyPrint
+        """
+        # Create font configuration
+        font_config = FontConfiguration()
+        
+        # Define CSS for PDF styling
+        css_string = """
+        @page {
+            size: A4;
+            margin: 0.75in;
+            @bottom-right {
+                content: counter(page) " / " counter(pages);
+                font-size: 9pt;
+                color: #666;
+            }
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .resume-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .resume-header {
+            text-align: center;
+            border-bottom: 2pt solid #000;
+            padding-bottom: 12pt;
+            margin-bottom: 18pt;
+        }
+        
+        .full-name {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 0 0 8pt 0;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+        }
+        
+        .contact-info {
+            font-size: 10pt;
+            line-height: 1.3;
+        }
+        
+        .contact-item {
+            display: inline-block;
+            margin: 0 12pt 4pt 0;
+        }
+        
+        .section {
+            margin-bottom: 18pt;
+            break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1pt solid #666;
+            padding-bottom: 2pt;
+            margin: 0 0 8pt 0;
+            letter-spacing: 0.5pt;
+        }
+        
+        .section-content {
+            margin-left: 0;
+        }
+        
+        .education-item, .project-item {
+            margin-bottom: 12pt;
+            break-inside: avoid;
+        }
+        
+        .education-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4pt;
+        }
+        
+        .institution-name, .project-title {
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        
+        .degree, .gpa {
+            font-size: 10pt;
+            color: #333;
+            margin: 2pt 0;
+        }
+        
+        .graduation-date {
+            font-size: 10pt;
+            color: #666;
+        }
+        
+        .test-scores {
+            display: flex;
+            gap: 16pt;
+            flex-wrap: wrap;
+        }
+        
+        .test-score-item {
+            background: #f5f5f5;
+            border: 1pt solid #ddd;
+            padding: 4pt 8pt;
+            border-radius: 2pt;
+            font-size: 10pt;
+        }
+        
+        .test-name {
+            font-weight: bold;
+            margin-right: 4pt;
+        }
+        
+        .essay-text, .project-description {
+            text-align: justify;
+            line-height: 1.5;
+            margin: 4pt 0;
+        }
+        
+        .activities-grid, .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4pt;
+            margin: 8pt 0;
+        }
+        
+        .activity-item, .skill-item {
+            background: #f8f9fa;
+            border: 1pt solid #e9ecef;
+            padding: 3pt 6pt;
+            font-size: 9pt;
+            text-align: center;
+            border-radius: 2pt;
+        }
+        
+        .interests-list {
+            line-height: 1.5;
+        }
+        
+        .word-count {
+            font-size: 8pt;
+            color: #999;
+            font-style: italic;
+            text-align: right;
+            margin-top: 4pt;
+        }
+        
+        /* Ensure proper page breaks */
+        .section {
+            page-break-inside: avoid;
+        }
+        
+        .education-item, .project-item {
+            page-break-inside: avoid;
+        }
+        """
+        
+        # Create CSS object
+        css = CSS(string=css_string, font_config=font_config)
+        
+        # Generate PDF
+        html_doc = HTML(string=html_string)
+        pdf_bytes = html_doc.write_pdf(stylesheets=[css], font_config=font_config)
+        
+        return pdf_bytes
+    
     def update(self, request, *args, **kwargs):
         """Disable full updates - only allow partial updates"""
         return Response(
@@ -140,7 +314,6 @@ class ResumeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_405_METHOD_NOT_ALLOWED
         )
     
-    @extend_schema(exclude=True)
     def destroy(self, request, *args, **kwargs):
         """Disable delete operations"""
         return Response(

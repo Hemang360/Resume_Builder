@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ full_name }} - Resume</title>
+</head>
+<body>
+    <div class="resume-container">
+        <!-- Header Section -->
+        <header class="resume-header">
+            <h1 class="full-name">{{ full_name|default:"Resume" }}</h1>
+            <div class="contact-info">
+                {% if personal_info.email %}
+                    <span class="contact-item">{{ personal_info.email }}</span>
+                {% endif %}
+                {% if personal_info.phone %}
+                    <span class="contact-item">{{ personal_info.phone }}</span>
+                {% endif %}
+                {% if personal_info.location %}
+                    <span class="contact-item">{{ personal_info.location }}</span>
+                {% endif %}
+                {% if personal_info.website %}
+                    <span class="contact-item">{{ personal_info.website }}</span>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Education Section -->
+        {% if education %}
+        <section class="section">
+            <h2 class="section-title">Education</h2>
+            <div class="section-content">
+                {% for edu in education %}
+                <div class="education-item">
+                    <div class="education-header">
+                        <div>
+                            <div class="institution-name">{{ edu.institution|default:"High School" }}</div>
+                            {% if edu.degree %}
+                                <div class="degree">{{ edu.degree }}</div>
+                            {% endif %}
+                            {% if edu.gpa %}
+                                <div class="gpa">
+                                    {% if "%" in edu.gpa %}Grade: {{ edu.gpa }}{% else %}GPA: {{ edu.gpa }}{% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if edu.endDate %}
+                            <div class="graduation-date">Expected {{ edu.endDate }}</div>
+                        {% endif %}
+                    </div>
+                    {% if edu.description %}
+                        <div class="education-description">{{ edu.description }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Test Scores Section -->
+        {% if academics.satScore or academics.toeflScore %}
+        <section class="section">
+            <h2 class="section-title">Test Scores</h2>
+            <div class="section-content">
+                <div class="test-scores">
+                    {% if academics.satScore %}
+                        <div class="test-score-item">
+                            <span class="test-name">SAT:</span>
+                            <span class="test-score">{{ academics.satScore }}</span>
+                        </div>
+                    {% endif %}
+                    {% if academics.toeflScore %}
+                        <div class="test-score-item">
+                            <span class="test-name">
+                                {% if "." in academics.toeflScore %}IELTS:{% else %}TOEFL:{% endif %}
+                            </span>
+                            <span class="test-score">{{ academics.toeflScore }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Leadership Essay Section -->
+        {% if essays.leadership %}
+        <section class="section">
+            <h2 class="section-title">Leadership Experience</h2>
+            <div class="section-content">
+                <div class="essay-text">{{ essays.leadership }}</div>
+                <div class="word-count">
+                    {{ essays.leadership|wordcount }} words
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Projects Section -->
+        {% if projects.0.title %}
+        <section class="section">
+            <h2 class="section-title">Notable Projects</h2>
+            <div class="section-content">
+                {% for project in projects %}
+                    {% if project.title %}
+                    <div class="project-item">
+                        <div class="project-title">{{ project.title }}</div>
+                        {% if project.description %}
+                            <div class="project-description">{{ project.description }}</div>
+                        {% endif %}
+                        {% if project.technologies %}
+                            <div class="project-technologies">
+                                <strong>Technologies:</strong> {{ project.technologies }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Extracurricular Activities Section -->
+        {% if extracurriculars %}
+        <section class="section">
+            <h2 class="section-title">Extracurricular Activities</h2>
+            <div class="section-content">
+                <div class="activities-grid">
+                    {% for activity in extracurriculars %}
+                        <div class="activity-item">{{ activity }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Skills Section -->
+        {% if skills %}
+        <section class="section">
+            <h2 class="section-title">Skills</h2>
+            <div class="section-content">
+                <div class="skills-grid">
+                    {% for skill in skills %}
+                        <div class="skill-item">
+                            {% if skill.name %}{{ skill.name }}{% else %}{{ skill }}{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Career Interests Section -->
+        {% if career_interests %}
+        <section class="section">
+            <h2 class="section-title">Career Interests</h2>
+            <div class="section-content">
+                <div class="interests-list">
+                    {% for interest in career_interests %}{{ interest }}{% if not forloop.last %} • {% endif %}{% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</body>
+</html>
