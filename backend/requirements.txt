@@ -21,3 +21,4 @@ uritemplate
 WeasyPrint
 fonttools
 Pillow
+uvicorn
