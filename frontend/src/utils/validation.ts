@@ -49,9 +49,19 @@ export const validateAnswer = (value: unknown, rule: ValidationRule): string | n
 
     case 'gpaFormat':
       if (value) {
-        const gpaPattern = /^(\d{1}\.\d{1,2}|[0-4](\.\d{1,2})?|\d{1,3}%)$/
-        if (!gpaPattern.test(String(value))) {
-          return rule.message
+        const valueStr = String(value)
+        // Check if it's a percentage
+        if (valueStr.includes('%')) {
+          const num = parseFloat(valueStr.replace('%', ''))
+          if (isNaN(num) || num < 0 || num > 100) {
+            return rule.message
+          }
+        } else {
+          // Check if it's a GPA (0.0-4.0)
+          const num = parseFloat(valueStr)
+          if (isNaN(num) || num < 0 || num > 4.0) {
+            return rule.message
+          }
         }
       }
       break

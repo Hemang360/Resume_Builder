@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { TextQuestion as TextQuestionType } from '@/types/questions'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { validateAnswer, formatInput } from '@/utils/validation'
-import QuestionTooltip from './QuestionTooltip'
 import { AlertCircle, CheckCircle, Info } from 'lucide-react'
 
 interface TextQuestionProps {
@@ -25,6 +25,7 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
   const inputRef = useRef<HTMLInputElement>(null)
   const [formattedValue, setFormattedValue] = useState(value)
   const [isValid, setIsValid] = useState(false)
+  const [selectedFormat, setSelectedFormat] = useState<'gpa' | 'percentage' | null>(null)
 
   useEffect(() => {
     // Auto-focus when question loads
@@ -51,20 +52,53 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
     const rawValue = e.target.value
     let processedValue = rawValue
 
-    // Apply formatting based on field type
-    if (question.format) {
+    // For GPA format, allow decimals and numbers only
+    if (question.format === 'gpa') {
+      if (selectedFormat === 'gpa') {
+        // For GPA: allow numbers and decimal point only
+        processedValue = rawValue.replace(/[^\d.]/g, '')
+        // Ensure only one decimal point
+        const parts = processedValue.split('.')
+        if (parts.length > 2) {
+          processedValue = parts[0] + '.' + parts.slice(1).join('')
+        }
+      } else if (selectedFormat === 'percentage') {
+        // For percentage: allow numbers only, no % symbol
+        processedValue = rawValue.replace(/[^\d.]/g, '')
+        // Ensure only one decimal point
+        const parts = processedValue.split('.')
+        if (parts.length > 2) {
+          processedValue = parts[0] + '.' + parts.slice(1).join('')
+        }
+      }
+    } else if (question.format) {
+      // Apply other formatting for non-GPA fields
       processedValue = formatInput(rawValue, question.format)
     }
 
     setFormattedValue(processedValue)
-    onChange(processedValue)
+    
+    // For percentage format, add % symbol when calling onChange
+    if (question.format === 'gpa' && selectedFormat === 'percentage' && processedValue) {
+      onChange(processedValue + '%')
+    } else {
+      onChange(processedValue)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      
+      // The onChange in handleChange already handles the % symbol
+      // Just proceed to next question
       onEnter()
     }
+  }
+
+  const handleFormatSelect = (format: 'gpa' | 'percentage') => {
+    setSelectedFormat(format)
+    // Don't clear the input - let user keep their value
   }
 
   const getInputIcon = () => {
@@ -100,18 +134,11 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
   return (
     <div className="space-y-6">
       {/* Question Header */}
-      <div>
-        <div className="flex items-start gap-3 mb-2">
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {question.title}
-              {question.required && <span className="text-red-500 ml-1">*</span>}
-            </h1>
-          </div>
-          {question.tooltip && (
-            <QuestionTooltip tooltip={question.tooltip} />
-          )}
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+          {question.title}
+          {question.required && <span className="text-red-500 ml-1">*</span>}
+        </h1>
         {question.subtitle && (
           <p className="text-lg text-slate-600 dark:text-slate-400">
             {question.subtitle}
@@ -121,32 +148,84 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
 
       {/* Input Field */}
       <div className="space-y-2">
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            type={question.inputType || 'text'}
-            value={formattedValue}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={question.placeholder}
-            className={`text-lg py-6 pr-10 transition-colors ${
-              error 
-                ? 'border-red-500 focus:border-red-500' 
-                : warning
-                ? 'border-amber-500 focus:border-amber-500'
-                : isValid
-                ? 'border-green-500 focus:border-green-500'
-                : ''
-            }`}
-            aria-invalid={!!error}
-            aria-describedby={error ? `${question.id}-error` : undefined}
-          />
-          
-          {/* Status Icon */}
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            {getInputIcon()}
+        {question.format === 'gpa' ? (
+          <div className="flex items-center gap-4">
+            {/* Input Field - On the left */}
+            <div className="relative flex-1 max-w-xs">
+              <Input
+                ref={inputRef}
+                type={question.inputType || 'text'}
+                value={formattedValue}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                placeholder={selectedFormat === 'gpa' ? '3.85' : '92'}
+                className={`text-lg py-6 pr-10 transition-colors ${
+                  error 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : warning
+                    ? 'border-amber-500 focus:border-amber-500'
+                    : isValid
+                    ? 'border-green-500 focus:border-green-500'
+                    : ''
+                }`}
+                aria-invalid={!!error}
+                aria-describedby={error ? `${question.id}-error` : undefined}
+              />
+              
+              {/* Status Icon */}
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {getInputIcon()}
+              </div>
+            </div>
+            
+            {/* Format Selection Buttons - On the right, larger */}
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant={selectedFormat === 'gpa' ? 'default' : 'outline'}
+                onClick={() => handleFormatSelect('gpa')}
+                className="px-6 py-3 text-base font-medium"
+              >
+                GPA
+              </Button>
+              <Button
+                type="button"
+                variant={selectedFormat === 'percentage' ? 'default' : 'outline'}
+                onClick={() => handleFormatSelect('percentage')}
+                className="px-6 py-3 text-base font-medium"
+              >
+                Percentage
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              type={question.inputType || 'text'}
+              value={formattedValue}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder={question.placeholder}
+              className={`text-lg py-6 pr-10 transition-colors ${
+                error 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : warning
+                  ? 'border-amber-500 focus:border-amber-500'
+                  : isValid
+                  ? 'border-green-500 focus:border-green-500'
+                  : ''
+              }`}
+              aria-invalid={!!error}
+              aria-describedby={error ? `${question.id}-error` : undefined}
+            />
+            
+            {/* Status Icon */}
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {getInputIcon()}
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -175,31 +254,6 @@ const TextQuestion: React.FC<TextQuestionProps> = ({
           </p>
         )}
 
-        {/* Format Examples */}
-        {question.format && !error && (
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
-            <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Expected Format:
-            </p>
-            <div className="text-xs text-slate-600 dark:text-slate-400">
-              {question.format === 'gpa' && (
-                <>
-                  <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded mr-2">3.85</span>
-                  <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded">92%</span>
-                </>
-              )}
-              {question.format === 'sat' && (
-                <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded">1450</span>
-              )}
-              {question.format === 'toefl' && (
-                <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded">105</span>
-              )}
-              {question.format === 'ielts' && (
-                <span className="bg-white dark:bg-slate-700 px-2 py-1 rounded">7.5</span>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

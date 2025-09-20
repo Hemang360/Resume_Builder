@@ -1,5 +1,6 @@
 import { createRouter, createRoute, createRootRoute } from '@tanstack/react-router'
 import App from './App'
+import LandingPage from './pages/LandingPage'
 import HomePage from './pages/HomePage'
 import OnboardingPage from './pages/OnboardingPage'
 
@@ -10,7 +11,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: HomePage,
+  component: LandingPage,
 })
 
 const onboardingRoute = createRoute({

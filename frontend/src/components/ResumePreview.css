@@ -1,14 +1,25 @@
 /* Resume Preview Styles */
 .resume-preview-container {
-  @apply w-full h-full flex flex-col;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .download-button-container {
-  @apply flex justify-end mb-4 px-4;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
 }
 
 .resume-content {
-  @apply flex-1 bg-white shadow-lg border border-slate-200 rounded-lg overflow-hidden;
+  flex: 1;
+  background-color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
 
   min-height: 11in; /* US Letter height */
   max-width: 8.5in; /* US Letter width */
@@ -16,195 +27,290 @@
 }
 
 .resume-document {
-  @apply p-8 font-serif text-slate-900 leading-relaxed;
+  padding: 2rem;
+  font-family: 'Times New Roman', Times, serif;
+  color: #0f172a;
+  line-height: 1.625;
 
   font-family: 'Times New Roman', Times, serif;
 }
 
 /* Header Styles */
 .resume-header {
-  @apply border-b-2 border-slate-200 pb-6 mb-8;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .name-section {
-  @apply text-center;
+  text-align: center;
 }
 
 .full-name {
-  @apply text-3xl font-bold mb-4 text-slate-800 tracking-wide;
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1e293b;
+  letter-spacing: 0.025em;
 
   font-family: 'Times New Roman', Times, serif;
 }
 
 .contact-info {
-  @apply flex flex-wrap justify-center gap-4 text-sm text-slate-600;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #475569;
 }
 
 .contact-item {
-  @apply flex items-center gap-1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .contact-icon {
-  @apply text-slate-500;
+  color: #64748b;
 }
 
 /* Section Styles */
 .resume-section {
-  @apply mb-8;
+  margin-bottom: 2rem;
 }
 
 .section-title {
-  @apply text-lg font-bold text-slate-800 border-b border-slate-300 pb-2 mb-4 uppercase tracking-wide;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 
   font-family: 'Times New Roman', Times, serif;
 }
 
 .section-content {
-  @apply space-y-4;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 /* Education Styles */
 .education-item {
-  @apply space-y-2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .education-header {
-  @apply flex justify-between items-start;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .education-main {
-  @apply flex-1;
+  flex: 1;
 }
 
 .institution-name {
-  @apply font-bold text-slate-800;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .degree {
-  @apply text-slate-600 text-sm;
+  color: #475569;
+  font-size: 0.875rem;
 }
 
 .gpa {
-  @apply text-slate-600 text-sm font-medium;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .education-dates {
-  @apply flex items-center text-sm text-slate-500;
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #64748b;
 }
 
 .graduation-date {
-  @apply flex items-center gap-1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .date-icon {
-  @apply text-slate-400;
+  color: #94a3b8;
 }
 
 .education-description {
-  @apply text-sm text-slate-600 leading-relaxed;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.625;
 }
 
 /* Test Scores Styles */
 .test-scores {
-  @apply flex gap-6;
+  display: flex;
+  gap: 1.5rem;
 }
 
 .test-score-item {
-  @apply flex items-center gap-2 bg-slate-50 px-3 py-2 rounded;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
 }
 
 .test-icon {
-  @apply text-blue-600;
+  color: #2563eb;
 }
 
 .test-name {
-  @apply font-medium text-slate-700;
+  font-weight: 500;
+  color: #374151;
 }
 
 .test-score {
-  @apply font-bold text-slate-900;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 /* Essay Styles */
 .essay-content {
-  @apply space-y-3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .essay-text {
-  @apply text-sm leading-relaxed text-slate-700 text-justify;
+  font-size: 0.875rem;
+  line-height: 1.625;
+  color: #374151;
+  text-align: justify;
 }
 
 .essay-meta {
-  @apply flex justify-end;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .word-count {
-  @apply text-xs text-slate-400 italic;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 /* Project Styles */
 .project-item {
-  @apply space-y-2 pb-4 border-b border-slate-100 last:border-b-0 last:pb-0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.project-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .project-title {
-  @apply font-bold text-slate-800;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .project-description {
-  @apply text-sm text-slate-700 leading-relaxed;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.625;
 }
 
 .project-technologies {
-  @apply flex gap-2 text-xs text-slate-500;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .tech-label {
-  @apply font-medium;
+  font-weight: 500;
 }
 
 .tech-list {
-  @apply italic;
+  font-style: italic;
 }
 
 /* Activities Styles */
 .activities-grid {
-  @apply grid grid-cols-2 gap-2;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
 }
 
 .activity-item {
-  @apply text-sm text-slate-700 bg-slate-50 px-3 py-1 rounded;
+  font-size: 0.875rem;
+  color: #374151;
+  background-color: #f8fafc;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
 }
 
 /* Skills Styles */
 .skills-grid {
-  @apply grid grid-cols-3 gap-2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
 }
 
 .skill-item {
-  @apply text-sm text-slate-700 bg-slate-50 px-3 py-1 rounded text-center;
+  font-size: 0.875rem;
+  color: #374151;
+  background-color: #f8fafc;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  text-align: center;
 }
 
 /* Career Interests Styles */
 .interests-list {
-  @apply text-sm text-slate-700 leading-relaxed;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.625;
 }
 
 /* Empty State */
 .empty-state {
-  @apply flex flex-col items-center justify-center h-96 text-center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 24rem;
+  text-align: center;
 }
 
 .empty-icon {
-  @apply text-slate-300 mb-4;
+  color: #cbd5e1;
+  margin-bottom: 1rem;
 }
 
 .empty-title {
-  @apply text-xl font-semibold text-slate-600 mb-2;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.5rem;
 }
 
 .empty-description {
-  @apply text-slate-500;
+  color: #64748b;
 }
 
 /* Print Styles */
@@ -230,10 +336,11 @@
   }
   
   .resume-document {
-    padding: 0.5in !important;
+    padding: 0.75in !important;
     font-size: 11pt !important;
     line-height: 1.4 !important;
     color: black !important;
+    font-family: 'Times New Roman', Times, serif !important;
   }
   
   .full-name {
@@ -328,7 +435,8 @@
 /* Dark mode compatibility */
 @media (prefers-color-scheme: dark) {
   .resume-content {
-    @apply bg-white text-slate-900;
+    background-color: white;
+    color: #0f172a;
   }
   
   /* Override dark mode styles for resume */
@@ -341,31 +449,35 @@
 /* Responsive adjustments */
 @media (width <= 768px) {
   .resume-document {
-    @apply p-4;
+    padding: 1rem;
   }
   
   .full-name {
-    @apply text-2xl;
+    font-size: 1.5rem;
   }
   
   .contact-info {
-    @apply flex-col gap-2;
+    flex-direction: column;
+    gap: 0.5rem;
   }
   
   .education-header {
-    @apply flex-col items-start gap-2;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
   
   .test-scores {
-    @apply flex-col gap-3;
+    flex-direction: column;
+    gap: 0.75rem;
   }
   
   .activities-grid {
-    @apply grid-cols-1;
+    grid-template-columns: 1fr;
   }
   
   .skills-grid {
-    @apply grid-cols-2;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

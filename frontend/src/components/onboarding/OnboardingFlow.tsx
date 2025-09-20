@@ -1,32 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Question, QuestionState, TextQuestion as TextQuestionType, TextareaQuestion as TextareaQuestionType, ChipMultiSelectQuestion as ChipMultiSelectQuestionType } from '@/types/questions'
+import { Question, QuestionState, TextQuestion as TextQuestionType, TextareaQuestion as TextareaQuestionType, ChipMultiSelectQuestion as ChipMultiSelectQuestionType, DateQuestion as DateQuestionType } from '@/types/questions'
 import { useResumeContext } from '@/contexts/ResumeContext'
 import QuestionWrapper from './QuestionWrapper'
 import TextQuestion from './TextQuestion'
 import TextareaQuestion from './TextareaQuestion'
 import ChipMultiSelectQuestion from './ChipMultiSelectQuestion'
+import DateQuestion from './DateQuestion'
 import { validateAnswer } from '@/utils/validation'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface OnboardingFlowProps {
   questions: Question[]
   onComplete?: () => void
+  startFromQuestionId?: string
 }
 
 const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ 
   questions, 
-  onComplete 
+  onComplete,
+  startFromQuestionId
 }) => {
   const { setField, resume } = useResumeContext()
   
+  // Find the starting question index
+  const getStartingIndex = () => {
+    if (startFromQuestionId) {
+      const index = questions.findIndex(q => q.id === startFromQuestionId)
+      return index !== -1 ? index : 0
+    }
+    return 0
+  }
+  
   const [state, setState] = useState<QuestionState>({
-    currentQuestionIndex: 0,
+    currentQuestionIndex: getStartingIndex(),
     answers: {},
     errors: {},
     warnings: {},
     isComplete: false
   })
+  const [isAnimating, setIsAnimating] = useState(false)
 
   const currentQuestion = questions[state.currentQuestionIndex]
   const isLastQuestion = state.currentQuestionIndex === questions.length - 1
@@ -75,7 +89,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   }, [currentQuestion, setField])
 
   // Move to next question
-  const goToNext = useCallback(() => {
+  const goToNext = useCallback(async () => {
     const currentAnswer = getCurrentAnswer()
     const error = validateCurrentAnswer(currentAnswer)
 
@@ -87,6 +101,11 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       return
     }
 
+    setIsAnimating(true)
+    
+    // Add a small delay for smooth transition
+    await new Promise(resolve => setTimeout(resolve, 150))
+
     if (isLastQuestion) {
       setState(prev => ({ ...prev, isComplete: true }))
       onComplete?.()
@@ -97,16 +116,26 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         errors: { ...prev.errors, [currentQuestion.id]: '' }
       }))
     }
+    
+    setIsAnimating(false)
   }, [getCurrentAnswer, validateCurrentAnswer, currentQuestion, isLastQuestion, onComplete])
 
   // Move to previous question
-  const goToPrevious = useCallback(() => {
-    if (!isFirstQuestion) {
-      setState(prev => ({
-        ...prev,
-        currentQuestionIndex: prev.currentQuestionIndex - 1
-      }))
-    }
+  const goToPrevious = useCallback(async () => {
+    if (isFirstQuestion) return
+
+    setIsAnimating(true)
+    
+    // Add a small delay for smooth transition
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    setState(prev => ({
+      ...prev,
+      currentQuestionIndex: prev.currentQuestionIndex - 1
+    }))
+    
+    // Reset animation after a brief delay
+    setTimeout(() => setIsAnimating(false), 50)
   }, [isFirstQuestion])
 
   // Keyboard navigation
@@ -160,6 +189,16 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             onEnter={goToNext}
           />
         )
+      case 'date':
+        return (
+          <DateQuestion 
+            question={currentQuestion as DateQuestionType}
+            value={typeof currentAnswer === 'string' ? currentAnswer : ''}
+            onChange={handleAnswerChange}
+            error={state.errors[currentQuestion.id]}
+            onEnter={goToNext}
+          />
+        )
       default:
         return null
     }
@@ -198,7 +237,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     >
       <div className="space-y-8">
         {/* Question Content */}
-        <div className="min-h-[300px]">
+        <div className={cn(
+          "min-h-[300px] transition-all duration-300 ease-in-out",
+          isAnimating ? "opacity-0 transform translate-x-8 scale-95" : "opacity-100 transform translate-x-0 scale-100"
+        )}>
           {renderQuestion()}
         </div>
 
@@ -207,8 +249,13 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           <Button
             variant="ghost"
             onClick={goToPrevious}
-            disabled={isFirstQuestion}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            disabled={isFirstQuestion || isAnimating}
+            className={cn(
+              "flex items-center gap-2 transition-all duration-200",
+              isFirstQuestion || isAnimating
+                ? "opacity-50 cursor-not-allowed text-slate-400 dark:text-slate-600" 
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:scale-105"
+            )}
           >
             <ArrowLeft className="w-4 h-4" />
             Previous
@@ -222,11 +269,25 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
           <Button
             onClick={goToNext}
-            className="flex items-center gap-2"
-            disabled={!getCurrentAnswer() && currentQuestion.required}
+            className={cn(
+              "flex items-center gap-2 transition-all duration-200",
+              isAnimating
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:scale-105"
+            )}
+            disabled={(!getCurrentAnswer() && currentQuestion.required) || isAnimating}
           >
-            {isLastQuestion ? 'Complete' : 'Next'}
-            <ArrowRight className="w-4 h-4" />
+            {isAnimating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                {isLastQuestion ? 'Complete' : 'Next'}
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>

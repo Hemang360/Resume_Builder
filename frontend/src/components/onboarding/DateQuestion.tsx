@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { DateQuestion as DateQuestionType } from '@/types/questions'
 import { Input } from '@/components/ui/input'
-import QuestionTooltip from './QuestionTooltip'
 import { Calendar, AlertCircle } from 'lucide-react'
 
 interface DateQuestionProps {
@@ -66,18 +65,11 @@ const DateQuestion: React.FC<DateQuestionProps> = ({
   return (
     <div className="space-y-6">
       {/* Question Header */}
-      <div>
-        <div className="flex items-start gap-3 mb-2">
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {question.title}
-              {question.required && <span className="text-red-500 ml-1">*</span>}
-            </h1>
-          </div>
-          {question.tooltip && (
-            <QuestionTooltip tooltip={question.tooltip} />
-          )}
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+          {question.title}
+          {question.required && <span className="text-red-500 ml-1">*</span>}
+        </h1>
         {question.subtitle && (
           <p className="text-lg text-slate-600 dark:text-slate-400">
             {question.subtitle}

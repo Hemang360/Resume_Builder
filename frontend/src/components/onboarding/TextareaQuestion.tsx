@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { TextareaQuestion as TextareaQuestionType } from '@/types/questions'
 import { Textarea } from '@/components/ui/textarea'
-import QuestionTooltip from './QuestionTooltip'
 import EssayLengthMeter from './EssayLengthMeter'
 import { AlertCircle, Info } from 'lucide-react'
 
@@ -62,12 +61,7 @@ const TextareaQuestion: React.FC<TextareaQuestionProps> = ({
           'Connect experiences to your goals'
         ]
       case 'leadership':
-        return [
-          'Describe specific actions you took',
-          'Explain the impact of your leadership',
-          'Show how you motivated or influenced others',
-          'Reflect on what you learned'
-        ]
+        return []
       case 'challenge':
         return [
           'Describe the challenge clearly',
@@ -90,18 +84,11 @@ const TextareaQuestion: React.FC<TextareaQuestionProps> = ({
   return (
     <div className="space-y-6">
       {/* Question Header */}
-      <div>
-        <div className="flex items-start gap-3 mb-2">
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {question.title}
-              {question.required && <span className="text-red-500 ml-1">*</span>}
-            </h1>
-          </div>
-          {question.tooltip && (
-            <QuestionTooltip tooltip={question.tooltip} />
-          )}
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+          {question.title}
+          {question.required && <span className="text-red-500 ml-1">*</span>}
+        </h1>
         {question.subtitle && (
           <p className="text-lg text-slate-600 dark:text-slate-400">
             {question.subtitle}
@@ -177,31 +164,6 @@ const TextareaQuestion: React.FC<TextareaQuestionProps> = ({
           </div>
         )}
 
-        {/* Word Count Display */}
-        <div
-          id={`${question.id}-help`}
-          className="flex justify-between items-center text-sm text-slate-500 dark:text-slate-400"
-        >
-          <span>
-            Press <kbd className="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs">⌘ + Enter</kbd> to continue
-          </span>
-          <div className="flex items-center gap-4">
-            <span>{charCount} characters</span>
-            <span className={`font-medium ${
-              isOverLimit ? 'text-red-500' : 
-              isUnderMin ? 'text-amber-500' : 
-              'text-slate-600 dark:text-slate-400'
-            }`}>
-              {wordCount} 
-              {question.minWords || question.maxWords ? (
-                <span className="text-slate-400">
-                  {question.minWords && ` / ${question.minWords}+`}
-                  {question.maxWords && ` (max ${question.maxWords})`}
-                </span>
-              ) : ''} words
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   )

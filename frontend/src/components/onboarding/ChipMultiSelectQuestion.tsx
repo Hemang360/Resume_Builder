@@ -75,8 +75,8 @@ const ChipMultiSelectQuestion: React.FC<ChipMultiSelectQuestionProps> = ({
   return (
     <div className="space-y-6">
       {/* Question Title */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
           {question.title}
           {question.required && <span className="text-red-500 ml-1">*</span>}
         </h1>

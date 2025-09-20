@@ -104,6 +104,31 @@ export const enhancedHighSchoolQuestions: Question[] = [
     }
   },
   {
+    id: 'school_name',
+    type: 'text',
+    inputType: 'text',
+    title: "What's the name of your high school?",
+    subtitle: "Enter the full name of your current or most recent high school",
+    placeholder: "Delhi Public School, New Delhi",
+    jsonPath: 'education.0.institution',
+    required: true,
+    validation: [
+      { type: 'required', message: 'School name is required' }
+    ],
+    tooltip: {
+      title: 'High School Information',
+      content: 'Your high school name helps universities understand your academic background and context.',
+      tips: [
+        'Use the official name of your school',
+        'Include the city if it helps identify the school',
+        'Use the name as it appears on your transcript',
+        'Include any distinguishing details (e.g., "International", "Public", "Private")'
+      ],
+      examples: ['Delhi Public School', 'St. Xavier\'s High School', 'Kendriya Vidyalaya', 'International School of Mumbai'],
+      admissionNote: 'Universities use this information to understand your educational context and may research your school\'s academic standards.'
+    }
+  },
+  {
     id: 'gpa',
     type: 'text',
     inputType: 'text',
@@ -131,23 +156,30 @@ export const enhancedHighSchoolQuestions: Question[] = [
     }
   },
   {
-    id: 'graduation_date',
-    type: 'date',
-    dateType: 'graduation',
-    title: "When do you graduate from high school?",
-    subtitle: "Select your expected or actual graduation date",
-    jsonPath: 'education.0.graduationDate',
-    minYear: 2020,
-    maxYear: 2030,
+    id: 'graduation_year',
+    type: 'text',
+    inputType: 'number',
+    title: "What year do you graduate from high school?",
+    subtitle: "Enter your expected or actual graduation year",
+    placeholder: "2024",
+    jsonPath: 'education.0.graduationYear',
     required: true,
     validation: [
-      { type: 'required', message: 'Graduation date is required' },
-      { type: 'dateRange', message: 'Please select a valid graduation date' }
+      { type: 'required', message: 'Graduation year is required' },
+      { type: 'minValue', value: 2020, message: 'Graduation year must be 2020 or later' },
+      { type: 'maxValue', value: 2030, message: 'Graduation year must be 2030 or earlier' }
     ],
     tooltip: {
-      title: 'Graduation Timeline',
-      content: 'Your graduation date helps universities plan for your enrollment and determines application deadlines.',
-      admissionNote: 'Universities need this to coordinate with visa processing timelines and enrollment periods.'
+      title: 'Graduation Year',
+      content: 'Your graduation year helps universities understand your academic timeline and plan for your enrollment.',
+      tips: [
+        'Enter the year you expect to complete high school',
+        'Use the same year as your graduation date',
+        'This helps universities plan application deadlines',
+        'Be consistent with your graduation date'
+      ],
+      examples: ['2024', '2025', '2026'],
+      admissionNote: 'Universities use this information to coordinate application timelines and enrollment periods.'
     }
   },
   {
@@ -157,8 +189,8 @@ export const enhancedHighSchoolQuestions: Question[] = [
     subtitle: "Tell us about a time when you took initiative or led others",
     placeholder: "During my junior year, I noticed that many students were struggling with math concepts. I decided to start a peer tutoring program...",
     minWords: 100,
-    maxWords: 400,
-    targetWords: 250,
+    maxWords: 200,
+    targetWords: 150,
     rows: 8,
     showWordCount: true,
     essayType: 'leadership',
@@ -167,7 +199,7 @@ export const enhancedHighSchoolQuestions: Question[] = [
     validation: [
       { type: 'required', message: 'Leadership essay is required' },
       { type: 'minWords', value: 100, message: 'Please write at least 100 words' },
-      { type: 'maxWords', value: 400, message: 'Please keep your response under 400 words' }
+      { type: 'maxWords', value: 200, message: 'Please keep your response under 200 words' }
     ],
     tooltip: {
       title: 'Leadership Experience Essay',
@@ -313,4 +345,10 @@ export const enhancedHighSchoolQuestions: Question[] = [
   }
 ]
 
-export const highSchoolStudentQuestions = enhancedHighSchoolQuestions
+// Filter out duplicate questions that are already collected in TypeformOnboarding
+export const highSchoolStudentQuestions = enhancedHighSchoolQuestions.filter(
+  question => !['first_name', 'email'].includes(question.id)
+)
+
+// Keep the original for other uses
+export const allHighSchoolStudentQuestions = enhancedHighSchoolQuestions

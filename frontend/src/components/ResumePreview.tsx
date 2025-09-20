@@ -1,13 +1,10 @@
-import React, { useRef, useMemo } from 'react'
-import { useReactToPrint } from 'react-to-print'
+import React, { useMemo } from 'react'
 import { useResumeContext } from '@/contexts/ResumeContext'
-import { Button } from '@/components/ui/button'
-import { Download, FileText, Mail, Phone, MapPin, Globe, Calendar, Award } from 'lucide-react'
+import { FileText, Mail, Phone, MapPin, Globe, Calendar, Award } from 'lucide-react'
 import './ResumePreview.css'
 
 const ResumePreview: React.FC = () => {
   const { resume, isLoading } = useResumeContext()
-  const componentRef = useRef<HTMLDivElement>(null)
 
   // Helper function to get full name
   const getFullName = (content: Record<string, unknown>): string => {
@@ -17,44 +14,28 @@ const ResumePreview: React.FC = () => {
     return `${firstName} ${lastName}`.trim() || 'Resume'
   }
 
-  // Configure react-to-print
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: `${getFullName(resume.content)}-Resume`,
-    onAfterPrint: () => console.log('PDF generation completed'),
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 0.5in;
-      }
-      @media print {
-        body { -webkit-print-color-adjust: exact; }
-      }
-    `
-  })
 
-  // Helper function to format date
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return ''
-    try {
-      return new Date(dateString).getFullYear().toString()
-    } catch {
-      return dateString
-    }
-  }
-
-  // Helper function to calculate word count
-  const getWordCount = (text: string): number => {
-    return text?.trim() ? text.trim().split(/\s+/).length : 0
-  }
 
   // Memoized content processing for performance
   const processedContent = useMemo(() => {
     const content = resume.content || {}
     
+    // Handle education data - convert object with numeric keys to array
+    let educationArray: Record<string, unknown>[] = []
+    if (Array.isArray(content.education)) {
+      educationArray = content.education as Record<string, unknown>[]
+    } else if (content.education && typeof content.education === 'object') {
+      // Convert object with numeric keys to array
+      const educationObj = content.education as Record<string, unknown>
+      educationArray = Object.keys(educationObj)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(key => educationObj[key])
+        .filter(item => item !== null && item !== undefined) as Record<string, unknown>[]
+    }
+    
     return {
       personalInfo: content.personalInfo || {},
-      education: Array.isArray(content.education) ? content.education : (content.education ? [content.education] : []),
+      education: educationArray,
       skills: Array.isArray(content.skills) ? content.skills : [],
       extracurriculars: Array.isArray(content.extracurriculars) ? content.extracurriculars : [],
       projects: Array.isArray(content.projects) ? content.projects : (content.projects ? [content.projects] : []),
@@ -80,20 +61,8 @@ const ResumePreview: React.FC = () => {
 
   return (
     <div className="resume-preview-container">
-      {/* Download Button */}
-      <div className="download-button-container no-print">
-        <Button
-          onClick={handlePrint}
-          className="flex items-center gap-2 mb-4 shadow-lg"
-          size="lg"
-        >
-          <Download className="w-4 h-4" />
-          Download PDF
-        </Button>
-      </div>
-
       {/* Resume Content */}
-      <div ref={componentRef} className="resume-content" id="resume-to-print">
+      <div className="resume-content" id="resume-to-print">
         <article className="resume-document">
           {/* Header Section */}
           <header className="resume-header">
@@ -141,33 +110,39 @@ const ResumePreview: React.FC = () => {
                <div className="section-content">
                  {processedContent.education.map((edu, index) => {
                    if (!edu) return null
+                   const institution = edu.institution as string
+                   const degree = edu.degree as string
+                   const gpa = edu.gpa as string
+                   const graduationYear = edu.graduationYear as string
+                   const description = edu.description as string
+                   
                    return (
                      <div key={index} className="education-item">
                        <div className="education-header">
                          <div className="education-main">
                            <h3 className="institution-name">
-                             {edu.institution || 'High School'}
+                             {institution || 'High School'}
                            </h3>
-                           {edu.degree && (
-                             <p className="degree">{edu.degree}</p>
+                           {degree && (
+                             <p className="degree">{degree}</p>
                            )}
-                           {edu.gpa && (
+                           {gpa && (
                              <p className="gpa">
-                               {edu.gpa.includes('%') ? `Grade: ${edu.gpa}` : `GPA: ${edu.gpa}`}
+                               {gpa.includes('%') ? `Grade: ${gpa}` : `GPA: ${gpa}`}
                              </p>
                            )}
                          </div>
                          <div className="education-dates">
-                           {edu.endDate && (
+                           {graduationYear && (
                              <span className="graduation-date">
                                <Calendar className="date-icon" size={12} />
-                               Expected {formatDate(edu.endDate)}
+                               Expected {graduationYear}
                              </span>
                            )}
                          </div>
                        </div>
-                       {edu.description && (
-                         <p className="education-description">{edu.description}</p>
+                       {description && (
+                         <p className="education-description">{description}</p>
                        )}
                      </div>
                    )
@@ -210,11 +185,6 @@ const ResumePreview: React.FC = () => {
               <div className="section-content">
                 <div className="essay-content">
                   <p className="essay-text">{processedContent.essays.leadership}</p>
-                  <div className="essay-meta">
-                    <span className="word-count">
-                      {getWordCount(processedContent.essays.leadership)} words
-                    </span>
-                  </div>
                 </div>
               </div>
             </section>

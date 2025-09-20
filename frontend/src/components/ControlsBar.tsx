@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react'
 import { useResumeContext } from '@/contexts/ResumeContext'
 import { Button } from '@/components/ui/button'
+import { WebSocketStatus } from '@/components/WebSocketStatus'
 import { 
   Save, 
   Undo, 
@@ -10,7 +11,8 @@ import {
   WifiOff, 
   CheckCircle, 
   AlertCircle,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,7 +29,8 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
     undo,
     canUndo,
     saveResume,
-    exportToPDF
+    exportToPDF,
+    startOver
   } = useResumeContext()
 
   // Check if user is online
@@ -184,6 +187,19 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
           )}
         </div>
 
+        {/* Start Over Button */}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={startOver}
+          disabled={isSaving}
+          className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+          title="Start over with a new resume"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Start Over</span>
+        </Button>
+
         {/* Last Saved Timestamp */}
         {lastSaved && !hasUnsavedChanges && !isSaving && (
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
@@ -210,6 +226,9 @@ const ControlsBar: React.FC<ControlsBarProps> = ({ className }) => {
             <WifiOff className="w-4 h-4 text-red-500" />
           )}
         </div>
+
+        {/* WebSocket Status */}
+        <WebSocketStatus />
       </div>
 
       {/* Right Section - Action Buttons */}
