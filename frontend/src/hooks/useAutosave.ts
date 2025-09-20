@@ -36,7 +36,7 @@ export const useAutosave = ({
   const isOnline = useRef(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const processingQueue = useRef(false)
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
 
   // Save resume to server with conflict detection
   const saveResumeToServer = useCallback(async (resume: Resume, isNew: boolean = false): Promise<Resume> => {

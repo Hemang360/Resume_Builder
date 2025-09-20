@@ -180,9 +180,9 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
             </Label>
             
             {currentStepData.id === 'mobile' ? (
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full">
                 <Select value={data.countryCode} onValueChange={handleCountryCodeChange}>
-                  <SelectTrigger className="w-36 h-14 border-2 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 text-lg">
+                  <SelectTrigger className="w-[100px] h-14 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 text-lg flex-shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -205,8 +205,7 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className={cn(
-                    "text-lg h-14 px-6 border-2 transition-all duration-200 flex-1",
-                    "border-slate-300 dark:border-slate-600",
+                    "text-lg h-14 px-6 border-slate-300 dark:border-slate-600 transition-all duration-200 flex-1",
                     "focus:border-blue-500 dark:focus:border-blue-500",
                     "focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none",
                     "hover:border-slate-400 dark:hover:border-slate-500"
@@ -223,8 +222,7 @@ const TypeformOnboarding: React.FC<TypeformOnboardingProps> = ({ onComplete }) =
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyPress={handleKeyPress}
                 className={cn(
-                  "text-lg h-14 px-6 border-2 transition-all duration-200",
-                  "border-slate-300 dark:border-slate-600",
+                  "text-lg h-14 px-6 border-slate-300 dark:border-slate-600 transition-all duration-200",
                   "focus:border-blue-500 dark:focus:border-blue-500",
                   "focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none",
                   "hover:border-slate-400 dark:hover:border-slate-500"

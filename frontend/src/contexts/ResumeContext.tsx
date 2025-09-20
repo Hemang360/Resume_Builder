@@ -523,7 +523,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
     dispatch({ type: 'SET_ERROR', payload: undefined })
     
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
       
       const response = await fetch(`${API_BASE_URL}/api/resumes/`, {
         method: 'POST',
@@ -600,7 +600,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
         throw new Error('Resume must be saved before exporting')
       }
 
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
       
       const response = await fetch(`${API_BASE_URL}/api/resumes/${state.resume.id}/export_pdf/`, {
         method: 'POST',
@@ -698,7 +698,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
         dispatch({ type: 'SET_LOADING', payload: true })
         
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+          const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
           
           const response = await fetch(`${API_BASE_URL}/api/resumes/${resumeId}/`)
           
