@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 
+
 class Resume(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     content = models.JSONField(
@@ -17,7 +18,7 @@ class Resume(models.Model):
 
     def __str__(self):
         return f"Resume {str(self.id)[:8]}..."
-    
+
     def save(self, *args, **kwargs):
         """
         Override save to ensure updated_at is always set
@@ -26,5 +27,5 @@ class Resume(models.Model):
         if self.pk is not None:
             from django.utils import timezone
             self.updated_at = timezone.now()
-        
+
         super().save(*args, **kwargs)

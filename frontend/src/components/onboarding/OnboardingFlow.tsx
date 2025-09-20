@@ -24,6 +24,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     currentQuestionIndex: 0,
     answers: {},
     errors: {},
+    warnings: {},
     isComplete: false
   })
 

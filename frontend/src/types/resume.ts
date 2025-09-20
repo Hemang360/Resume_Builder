@@ -5,6 +5,7 @@ export interface PersonalInfo {
   email?: string
   phone?: string
   address?: string
+  location?: string
   website?: string
   linkedin?: string
 }
@@ -38,7 +39,39 @@ export interface Skill {
   category?: string
 }
 
-export interface ResumeContent {
+export interface Project {
+  id?: string
+  name?: string
+  title?: string
+  description?: string
+  technologies?: string
+  url?: string
+  startDate?: string
+  endDate?: string
+}
+
+export interface Reference {
+  id?: string
+  name?: string
+  position?: string
+  company?: string
+  email?: string
+  phone?: string
+}
+
+export interface Academics {
+  satScore?: string
+  toeflScore?: string
+  gpa?: string
+}
+
+export interface Essays {
+  leadership?: string
+  personalStatement?: string
+  whyThisSchool?: string
+}
+
+export interface ResumeContent extends Record<string, unknown> {
   personalInfo?: PersonalInfo
   summary?: string
   experience?: Experience[]
@@ -46,10 +79,10 @@ export interface ResumeContent {
   skills?: Skill[]
   languages?: string[]
   certifications?: string[]
-  projects?: any[]
-  references?: any[]
-  essays?: Record<string, string>
-  academics?: Record<string, any>
+  projects?: Project[]
+  references?: Reference[]
+  essays?: Essays
+  academics?: Academics
   extracurriculars?: string[]
   careerInterests?: string[]
 }
@@ -74,7 +107,7 @@ export interface ResumeState {
 
 export interface PendingEdit {
   path: string
-  value: any
+  value: unknown
   timestamp: number
 }
 

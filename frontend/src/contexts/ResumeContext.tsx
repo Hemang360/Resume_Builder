@@ -5,7 +5,7 @@ import { useAutosave } from '@/hooks/useAutosave'
 // Action types for reducer
 type ResumeAction =
   | { type: 'SET_RESUME'; payload: Resume }
-  | { type: 'SET_FIELD'; payload: { path: string; value: any } }
+  | { type: 'SET_FIELD'; payload: { path: string; value: unknown } }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_SAVING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | undefined }
@@ -28,7 +28,7 @@ interface ResumeContextType {
   showDraftDialog: boolean
   
   // Actions
-  setField: (path: string, value: any) => void
+  setField: (path: string, value: unknown) => void
   createResume: () => Promise<void>
   saveResume: () => Promise<void>
   undo: () => void
@@ -163,10 +163,10 @@ class ResumeStorage {
 }
 
 // Helper function to set nested object values using dot notation
-function setNestedValue(obj: any, path: string, value: any): any {
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
   const keys = path.split('.')
   const result = { ...obj }
-  let current = result
+  let current: Record<string, unknown> = result
 
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i]
@@ -175,33 +175,13 @@ function setNestedValue(obj: any, path: string, value: any): any {
     } else {
       current[key] = { ...current[key] }
     }
-    current = current[key]
+    current = current[key] as Record<string, unknown>
   }
 
   current[keys[keys.length - 1]] = value
   return result
 }
 
-// Safe merge algorithm for resume content
-function safeMergeContent(base: ResumeContent, changes: ResumeContent): ResumeContent {
-  const result = { ...base }
-
-  for (const [key, value] of Object.entries(changes)) {
-    if (key in result && typeof result[key as keyof ResumeContent] === 'object' && 
-        typeof value === 'object' && !Array.isArray(value) && value !== null) {
-      // Deep merge for objects (like personalInfo, academics)
-      result[key as keyof ResumeContent] = {
-        ...(result[key as keyof ResumeContent] as object),
-        ...(value as object)
-      } as any
-    } else {
-      // Replace for arrays, primitives, and null values
-      result[key as keyof ResumeContent] = value as any
-    }
-  }
-
-  return result
-}
 
 // Apply pending edits to resume content
 function applyPendingEdits(content: ResumeContent, edits: PendingEdit[]): ResumeContent {
@@ -372,7 +352,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
   }, [resumeId])
 
   // Autosave hook
-  const { saveToServer, queueRequest } = useAutosave({
+  const { saveToServer } = useAutosave({
     resumeId: state.resume.id,
     onSaveStart: () => dispatch({ type: 'SET_SAVING', payload: true }),
     onSaveComplete: (savedResume?: Resume) => {
@@ -396,7 +376,7 @@ export const ResumeProvider: React.FC<ResumeProviderProps> = ({
   })
 
   // Set field with automatic history tracking, autosave, and localStorage persistence
-  const setField = useCallback((path: string, value: any) => {
+  const setField = useCallback((path: string, value: unknown) => {
     // Push current state to history before making changes
     pushToHistory(state.resume)
     

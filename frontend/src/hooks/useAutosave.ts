@@ -1,6 +1,14 @@
 import { useCallback, useRef, useEffect } from 'react'
 import { Resume } from '@/types/resume'
 
+// Custom error class for conflicts
+class ConflictError extends Error {
+  constructor(message: string, public conflictData: unknown) {
+    super(message)
+    this.name = 'ConflictError'
+  }
+}
+
 interface UseAutosaveOptions {
   resumeId?: string
   onSaveStart?: () => void
@@ -29,14 +37,6 @@ export const useAutosave = ({
   const processingQueue = useRef(false)
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-
-  // Custom error class for conflicts
-  class ConflictError extends Error {
-    constructor(message: string, public conflictData: any) {
-      super(message)
-      this.name = 'ConflictError'
-    }
-  }
 
   // Save resume to server with conflict detection
   const saveResumeToServer = useCallback(async (resume: Resume, isNew: boolean = false): Promise<Resume> => {
