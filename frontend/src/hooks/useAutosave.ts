@@ -28,32 +28,60 @@ export const useAutosave = ({
   const isOnline = useRef(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const processingQueue = useRef(false)
 
-  // Change this URL to match your backend
-  const API_BASE_URL = 'http://localhost:8000'
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-  // Save resume to server
+  // Custom error class for conflicts
+  class ConflictError extends Error {
+    constructor(message: string, public conflictData: any) {
+      super(message)
+      this.name = 'ConflictError'
+    }
+  }
+
+  // Save resume to server with conflict detection
   const saveResumeToServer = useCallback(async (resume: Resume, isNew: boolean = false): Promise<Resume> => {
-    const url = isNew 
+    const url = isNew
       ? `${API_BASE_URL}/api/resumes/`
       : `${API_BASE_URL}/api/resumes/${resume.id}/`
     
     const method = isNew ? 'POST' : 'PATCH'
     
+    // Include If-Unmodified-Since header for conflict detection on updates
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (!isNew && resume.updated_at) {
+      headers['If-Unmodified-Since'] = new Date(resume.updated_at).toUTCString()
+    }
+    
     const response = await fetch(url, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         content: resume.content
       }),
     })
 
+    if (response.status === 412) {
+      // Handle conflict
+      const conflictData = await response.json()
+      throw new ConflictError('Resume was modified by another process', conflictData)
+    }
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    return await response.json()
+    // Extract Last-Modified header and update resume timestamp
+    const lastModified = response.headers.get('Last-Modified')
+    const savedResume = await response.json()
+    
+    if (lastModified) {
+      savedResume.updated_at = new Date(lastModified).toISOString()
+    }
+
+    return savedResume
   }, [API_BASE_URL])
 
   // Process queued requests when coming back online

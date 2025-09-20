@@ -1,24 +1,30 @@
-from django.db import models
 import uuid
+from django.db import models
 
 class Resume(models.Model):
-    """
-    Resume model to store resume data with flexible JSON content.
-    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     content = models.JSONField(
         default=dict,
-        help_text="Resume content as JSON. Can contain any structure like personalInfo, experience, skills, etc."
+        help_text="Resume content stored as JSON"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
+    updated_at = models.DateTimeField(auto_now=True)  # This will auto-update on save
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Resume'
         verbose_name_plural = 'Resumes'
-    
+
     def __str__(self):
-        # Try to get name from content, fallback to ID
-        name = self.content.get('personalInfo', {}).get('name', '')
-        return f"{name} - {self.id}" if name else str(self.id)
+        return f"Resume {str(self.id)[:8]}..."
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to ensure updated_at is always set
+        """
+        # If this is an update (not a create), ensure we update the timestamp
+        if self.pk is not None:
+            from django.utils import timezone
+            self.updated_at = timezone.now()
+        
+        super().save(*args, **kwargs)
