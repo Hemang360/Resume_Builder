@@ -24,12 +24,11 @@ services:
       - key: WEBSOCKET_URL
         value: wss://resume-builder-backend.onrender.com/ws/
 
-databases:
-  - name: resume-builder-db
-    plan: free
-
-services:
   - type: redis
     name: resume-builder-redis
     plan: free
     ipAllowList: []
+
+databases:
+  - name: resume-builder-db
+    plan: free
