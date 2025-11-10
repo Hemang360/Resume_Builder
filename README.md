@@ -1,6 +1,6 @@
 # Resume Builder 
 
-A modern, AI-powered resume builder designed specifically for high school students applying to international universities. Create professional resumes with real-time collaboration, intelligent validation, and export to PDF.
+A modern resume builder designed specifically for high school students applying to international universities. Create professional resumes with real-time collaboration, intelligent validation, and export to PDF.
 
 
 ##  Features
@@ -24,7 +24,7 @@ A modern, AI-powered resume builder designed specifically for high school studen
 ##  Tech Stack
 
 ### Frontend
-- **React ** + **TypeScript** - Modern UI with type safety
+- **React** + **TypeScript** - Modern UI with type safety
 - **Vite** - Lightning-fast build tool
 - **TailwindCSS** - Utility-first styling
 - **shadcn/ui** - Beautiful, accessible components
@@ -32,7 +32,7 @@ A modern, AI-powered resume builder designed specifically for high school studen
 - **WebSockets** - Real-time collaboration
 
 ### Backend
-- **Django ** + **Django REST Framework** - Robust API
+- **Django** + **Django REST Framework** - Robust API
 - **Django Channels** - WebSocket support for real-time features
 - **Redis** - Session storage and WebSocket message broker
 - **PostgreSQL** - Primary database
